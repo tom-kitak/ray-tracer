@@ -14,7 +14,6 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
 {
     position = glm::vec3(0.0);
     color = glm::vec3(0.0);
-    // TODO: implement this function.
     position = segmentLight.endpoint0 + 0.5f * segmentLight.endpoint1;
     color = segmentLight.color0 * 0.5f + segmentLight.color1 * 0.5f;
 }
@@ -25,7 +24,6 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 {
     position = glm::vec3(0.0);
     color = glm::vec3(0.0);
-    // TODO: implement this function.
     position = parallelogramLight.v0 + parallelogramLight.edge01 * 0.5f + parallelogramLight.edge02 * 0.5f;
     color = (parallelogramLight.color0 + parallelogramLight.color1 + parallelogramLight.color2 + parallelogramLight.color3) / 4.0f;
 }
@@ -34,7 +32,6 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    // TODO: implement this function.
     return 1.0;
 }
 

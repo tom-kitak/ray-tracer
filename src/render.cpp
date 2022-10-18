@@ -14,9 +14,9 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
 
-        if (features.enableRecursive) {
+        if (features.enableRecursive && rayDepth > 0) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            // TODO: put your own implementation of recursive ray tracing here.
+            Lo += getFinalColor(scene, bvh, reflection, features, rayDepth - 1);
         }
 
         // Draw a white debug ray if the ray hits.
