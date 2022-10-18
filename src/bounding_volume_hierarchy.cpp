@@ -79,13 +79,29 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 const auto v2 = mesh.vertices[tri[2]];
                 if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
                     hitInfo.material = mesh.material;
+                    glm::vec3 vec0 = v1.position - v0.position, vec1 = v2.position - v0.position, vec2 = (ray.origin + ray.direction * ray.t) - v0.position;
+                    float d00 = glm::dot(vec0, vec0);
+                    float d01 = glm::dot(vec0, vec1);
+                    float d11 = glm::dot(vec1, vec1);
+                    float d20 = glm::dot(vec2, vec0);
+                    float d21 = glm::dot(vec2, vec1);
+                    float denom = d00 * d11 - d01 * d01;
+                    float a = (d11 * d20 - d01 * d21) / denom;
+                    float b = (d00 * d21 - d01 * d20) / denom;
+                    float c = 1 - a - b;
+                    hitInfo.normal = a * v0.normal + b * v1.normal + c * v2.normal;
                     hit = true;
                 }
             }
         }
         // Intersect with spheres.
-        for (const auto& sphere : m_pScene->spheres)
-            hit |= intersectRayWithShape(sphere, ray, hitInfo);
+        for (const auto& sphere : m_pScene->spheres) {
+            if (intersectRayWithShape(sphere, ray, hitInfo)) {
+                hitInfo.material = sphere.material;
+                hitInfo.normal = (ray.origin + ray.direction * ray.t) - sphere.center;
+                hit = true;
+            }
+        }
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.
