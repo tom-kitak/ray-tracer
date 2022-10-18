@@ -324,7 +324,7 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, 1);
+                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
                     enableDebugDraw = false;
                 }
                 glPopAttrib();

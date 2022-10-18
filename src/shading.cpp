@@ -24,6 +24,6 @@ const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
     glm::vec3 normal = glm::normalize(hitInfo.normal);
     glm::vec3 reflectDir = glm::normalize(2 * (glm::dot(normal, viewDir)) * normal - viewDir);
     float t = FLT_MAX;
-    Ray reflectionRay { hitPos, reflectDir, t };
+    Ray reflectionRay { hitPos + 0.001f * reflectDir, reflectDir, t };
     return reflectionRay;
 }
