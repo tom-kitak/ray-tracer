@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 project(ComputerGraphics C CXX)
 
-option(USE_PREBUILT_INTERSECT "Enable using prebuilt intersection library" OFF)
+option(USE_PREBUILT_INTERSECT "Enable using prebuilt intersection library" ON)
 
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/framework")
 	# Create framework library and include CMake scripts (compiler warnings, sanitizers and static analyzers).
