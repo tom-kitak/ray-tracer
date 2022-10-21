@@ -19,6 +19,24 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             // TODO: put your own implementation of recursive ray tracing here.
         }
 
+        //Tom Kitak additions start
+        if (features.enableHardShadow) {
+            
+            for (std::variant<PointLight, SegmentLight, ParallelogramLight> l : scene.lights) { 
+                PointLight point_light = std::get<PointLight>(l);
+                glm::vec3 samplePos = point_light.position;
+                float color_res = testVisibilityLightSample(samplePos, point_light.color, bvh, features, ray, hitInfo);
+                   
+                if (color_res == 0.0f) {
+                    return glm::vec3(0.0f);
+                } else if (color_res == 1.0f) {
+                    return glm::vec3(1.0f);
+                }
+                
+            }
+        }
+        //Tom Kitak additions end
+
         // Draw a white debug ray if the ray hits.
         drawRay(ray, glm::vec3(1.0f));
 
