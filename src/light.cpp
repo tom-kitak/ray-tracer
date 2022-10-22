@@ -33,10 +33,14 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     // TODO: implement this function.
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t;
     
-    glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
     float shadow_vec_t = glm::length(samplePos - intersection_point);
+    //if (shadow_vec_t == 0.0f) {
+    //    return 1.0f;
+    //}
+    glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
     
-    Ray shadow_ray = Ray { intersection_point, shadow_vec_dir, shadow_vec_t };
+    
+    Ray shadow_ray { intersection_point, shadow_vec_dir, shadow_vec_t };
     
     bool hit_before = bvh.intersect(shadow_ray, hitInfo, features);
 

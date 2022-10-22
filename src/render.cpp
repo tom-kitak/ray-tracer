@@ -7,6 +7,8 @@
 #include <omp.h>
 #endif
 
+void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
@@ -22,6 +24,8 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         //Tom Kitak additions start
         if (features.enableHardShadow) {
             
+            hardShadowVisualDebug(scene, bvh, ray, features, hitInfo);
+
             for (std::variant<PointLight, SegmentLight, ParallelogramLight> l : scene.lights) { 
                 PointLight point_light = std::get<PointLight>(l);
                 glm::vec3 samplePos = point_light.position;
@@ -29,8 +33,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
                    
                 if (color_res == 0.0f) {
                     return glm::vec3(0.0f);
-                } else if (color_res == 1.0f) {
-                    return glm::vec3(1.0f);
                 }
                 
             }
@@ -66,6 +68,31 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+        }
+    }
+}
+
+void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
+{
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t;
+
+    for (std::variant<PointLight, SegmentLight, ParallelogramLight> l : scene.lights) {
+
+        PointLight point_light = std::get<PointLight>(l);
+        glm::vec3 samplePos = point_light.position;
+
+
+        glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
+        float shadow_vec_t = glm::length(samplePos - intersection_point);
+        
+        Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
+
+        bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+
+        if (hit_before) { 
+            drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
+        } else {
+            drawRay(ray_towards_light, glm::vec3(1.0f));
         }
     }
 }
