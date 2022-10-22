@@ -13,12 +13,12 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
-
+        
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
 
-        if (features.enableRecursive) {
+        if (features.enableRecursive && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= 0 ) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            // TODO: put your own implementation of recursive ray tracing here.
+            Lo = hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1) + (glm::vec3(1, 1, 1) - hitInfo.material.ks) * Lo;
         }
 
         //Tom Kitak additions start
@@ -40,7 +40,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         //Tom Kitak additions end
 
         // Draw a white debug ray if the ray hits.
-        drawRay(ray, glm::vec3(1.0f));
+        drawRay(ray, Lo);
 
         // Set the color of the pixel to white if the ray hits.
         return Lo;
