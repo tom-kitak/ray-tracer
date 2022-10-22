@@ -33,7 +33,6 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
     
     float shadow_vec_t = glm::length(samplePos - intersection_point);
-    
     if (shadow_vec_t == 0.0f) {
         return 1.0f;
     }
