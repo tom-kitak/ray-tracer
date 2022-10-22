@@ -20,6 +20,9 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             Ray reflection = computeReflectionRay(ray, hitInfo);
             Lo = hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth - 1) + (glm::vec3(1, 1, 1) - hitInfo.material.ks) * Lo;
         }
+        
+        Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
+
 
         //Tom Kitak additions enableHardShadow START
         if (features.enableHardShadow) {
