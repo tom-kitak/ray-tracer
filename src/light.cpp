@@ -28,7 +28,26 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    return 1.0;
+    // TODO: implement this function.
+    glm::vec3 offset(-0.00001f);
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
+    
+    float shadow_vec_t = glm::length(samplePos - intersection_point);
+    if (shadow_vec_t == 0.0f) {
+        return 1.0f;
+    }
+    glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
+    
+    
+    Ray shadow_ray { intersection_point, shadow_vec_dir, shadow_vec_t };
+    
+    bool hit_before = bvh.intersect(shadow_ray, hitInfo, features);
+
+    if (hit_before) {
+        return 0.0;
+    } else {
+        return 1.0;
+    }
 }
 
 // given an intersection, computes the contribution from all light sources at the intersection point
