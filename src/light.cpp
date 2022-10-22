@@ -12,8 +12,13 @@ DISABLE_WARNINGS_POP()
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
+    //1. Sample a position from segmentLight: get random vector
+    glm::vec3 p0_to_p1 = segmentLight.endpoint1 - segmentLight.endpoint0;
+    float random = (float)rand() / RAND_MAX;
+    position = segmentLight.endpoint0 + random * p0_to_p1;
+    
+    //2. Calculate the color
+    color = segmentLight.color0 * random + segmentLight.color1 * (1 - random);
 }
 
 // samples a parallelogram light source
