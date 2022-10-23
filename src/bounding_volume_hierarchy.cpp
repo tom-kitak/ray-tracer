@@ -86,6 +86,12 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                         hitInfo.normal = glm::normalize(cross);
                     }
                     hit = true;
+
+                    // draw normals of the intersected triangles
+                    // normals will be drawn blue
+                    drawRay(Ray { v0.position + 10.0f * v0.normal }, glm::vec3(0.0f, 0.0f, 1.0f));
+                    drawRay(Ray { v1.position + 10.0f * v1.normal }, glm::vec3(0.0f, 0.0f, 1.0f));
+                    drawRay(Ray { v2.position + 10.0f * v2.normal }, glm::vec3(0.0f, 0.0f, 1.0f));
                 }
             }
         }

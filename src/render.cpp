@@ -2,6 +2,7 @@
 #include "intersect.h"
 #include "light.h"
 #include "screen.h"
+#include "interpolate.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
@@ -17,9 +18,9 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
 
         if (features.enableRecursive && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= maxRayDepth) {
-            Ray reflection = computeReflectionRay(ray, hitInfo);
-            Lo += getFinalColor(scene, bvh, reflection, features, rayDepth + 1);
-        }
+           Ray reflection = computeReflectionRay(ray, hitInfo);
+           Lo += getFinalColor(scene, bvh, reflection, features, rayDepth + 1);
+         }
         
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
 
@@ -102,5 +103,31 @@ void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray,
         } else {
             drawRay(ray_towards_light, glm::vec3(1.0f));
         }
+    }
+}
+
+void normalInterpoVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
+{
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
+
+    if (bvh.intersect(ray, hitInfo, features)) {
+        if (!features.enableAccelStructure) {
+            bool hit = false;
+            for (const auto& mesh : scene.meshes) {
+                for (const auto& tri : mesh.triangles) {
+                    const auto v0 = mesh.vertices[tri[0]];
+                    const auto v1 = mesh.vertices[tri[1]];
+                    const auto v2 = mesh.vertices[tri[2]];
+                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position + 10.0f * v0.normal, v1.position + 10.0f * v1.normal, 
+                            v2.position + 10.0f * v2.normal, intersection_point);
+                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
+
+                        // interpolated normal will be green
+                        drawRay(Ray { intersection_point + 10.f * interpolatedNormal }, glm::vec3(0.0f, 1.0f, 0.0f));
+
+                    }
+                }
+            }
     }
 }
