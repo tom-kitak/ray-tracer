@@ -4,16 +4,16 @@
 glm::vec3 computeBarycentricCoord (const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& p)
 {
     // Given the intersection point inside a triangle, compute its barycentric coordinates
-    // float A = 0.5 * std::abs(glm::length(glm::cross((v2 - v0), (v1 - v0))));
+    float A = 0.5 * std::abs(glm::length(glm::cross((v2 - v0), (v1 - v0))));
     // const glm::vec3 AB = v1 - v0;
     // const glm::vec3 AC = v2 - v0;
     // float A = 0.5 * std::sqrt((pow(AB.y * AC.z - AB.z * AC.y, 2)) + (pow(AB.z * AC.x - AB.x * AC.z, 2)) + (pow(AB.x * AC.y - AB.y * AC.x, 2)));
 
-    // float alpha = (0.5 * std::abs(glm::length(glm::cross((v1 - p), (v2 - p))) / A));
-    // float beta = (0.5 * std::abs(glm::length(glm::cross((v0 - p), (v2 - p))) / A));
+    // float alpha = dot((p - v0), glm::normalize(v1 - v0));
+    // float beta = dot((p - v0), glm::normalize(v2 - v0));
 
-    float alpha = dot((p - v0), glm::normalize(v1 - v0));
-    float beta = dot((p - v0), glm::normalize(v2 - v0));
+    float alpha = (0.5 * std::abs(glm::length(glm::cross((v1 - p), (v2 - p))) / A));
+    float beta = (0.5 * std::abs(glm::length(glm::cross((v0 - p), (v2 - p))) / A));
     float gamma = 1 - alpha - beta;
     return glm::vec3(alpha, beta, gamma);
 }
