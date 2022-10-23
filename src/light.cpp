@@ -25,8 +25,14 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
 // you should fill in the vectors position and color with the sampled position and color
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
+    // 1. Sample a position from parallelogramLight: get random vector
+    
+    float alpha = (float)rand() / RAND_MAX;
+    float beta = (float)rand() / RAND_MAX;
+    position = parallelogramLight.v0 + alpha * parallelogramLight.edge01 + beta * parallelogramLight.edge02;
+
+    // 2. Calculate the color
+    color = parallelogramLight.color0 * (1 - alpha) + parallelogramLight.color1 * alpha + parallelogramLight.color2 * (1 - beta) + parallelogramLight.color3 * beta;
 }
 
 // test the visibility at a given light sample

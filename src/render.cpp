@@ -10,10 +10,10 @@
 
 void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
 void segmentLightVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo);
-std::vector<std::tuple<glm::vec3, glm::vec3>> sampledSegmentLightMultipleTimes(SegmentLight segmentLight, int n);
 void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo);
+std::vector<std::tuple<glm::vec3, glm::vec3>> sampledLightMultipleTimes(std::variant<PointLight, SegmentLight, ParallelogramLight> light, int n);
 
-glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
+    glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo, features)) {
@@ -50,7 +50,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
             glm::vec3 color(0.0f);
             enableSoftShadowActions(color, scene, bvh, ray, features, rayDepth, hitInfo);
   
-            Lo = (Lo + color) / glm::vec3(2);
+            Lo = color;
         }
         //Tom Kitak additions enableHardShadow END
 
@@ -147,18 +147,37 @@ void segmentLightVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterf
     }
 }
 
-std::vector<std::tuple<glm::vec3, glm::vec3>> sampledSegmentLightMultipleTimes(SegmentLight segmentLight, int n)
+std::vector<std::tuple<glm::vec3, glm::vec3>> sampledLightMultipleTimes(std::variant<PointLight, SegmentLight, ParallelogramLight> light, int n)
 {
     std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color;
     for (int i = 0; i < n; i++) {
         glm::vec3 position;
         glm::vec3 color;
-        sampleSegmentLight(segmentLight, position, color);
+        if (std::holds_alternative<SegmentLight>(light)) {
+            const SegmentLight segmentLight = std::get<SegmentLight>(light);
+            sampleSegmentLight(segmentLight, position, color);
+        } else if (std::holds_alternative<ParallelogramLight>(light)) {
+            const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+            sampleParallelogramLight(parallelogramLight, position, color);
+        }
         vec_position_color.push_back(std::make_tuple(position, color));
     }
 
     return vec_position_color;
 }
+
+//std::vector<std::tuple<glm::vec3, glm::vec3>> sampledSegmentLightMultipleTimes(SegmentLight segmentLight, int n)
+//{
+//    std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color;
+//    for (int i = 0; i < n; i++) {
+//        glm::vec3 position;
+//        glm::vec3 color;
+//        sampleSegmentLight(segmentLight, position, color);
+//        vec_position_color.push_back(std::make_tuple(position, color));
+//    }
+//
+//    return vec_position_color;
+//}
 
 void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo)
 {
@@ -169,7 +188,7 @@ void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInte
         if (std::holds_alternative<SegmentLight>(l)) {
 
             const SegmentLight segmentLight = std::get<SegmentLight>(l);
-            std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledSegmentLightMultipleTimes(segmentLight, 100);
+            std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(segmentLight, 100);
 
             segmentLightVisualDebug(ray, segmentLight, bvh, samples, features, hitInfo);
            
