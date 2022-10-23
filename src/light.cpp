@@ -1,12 +1,12 @@
 #include "light.h"
 #include "config.h"
+
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
-
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -18,7 +18,7 @@ void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, g
     position = segmentLight.endpoint0 + random * p0_to_p1;
     
     //2. Calculate the color
-    color = segmentLight.color0 * random + segmentLight.color1 * (1 - random);
+    color = segmentLight.color0 * (1 - random) + segmentLight.color1 * random;
 }
 
 // samples a parallelogram light source
@@ -117,45 +117,5 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
     } else {
         // If shading is disabled, return the albedo of the material.
         return hitInfo.material.kd;
-    }
-}
-
-std::vector<std::tuple<glm::vec3, glm::vec3>> sampledSegmentLightMultipleTimes(SegmentLight segmentLight, int n)
-{
-    std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color;
-    for (int i = 0; i < n; i++) {
-        glm::vec3 position;
-        glm::vec3 color;
-        sampleSegmentLight(segmentLight, position, color);
-        vec_position_color.push_back(std::make_tuple(position, color));
-    }
-    return vec_position_color;
-}
-
-void segmentLightVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo)
-{   
-    glm::vec3 offset(-0.00001f);
-    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
-
-    for (std::tuple<glm::vec3, glm::vec3> t : vec_position_color) {
-        glm::vec3 point_on_light = std::get<0>(t);
-        glm::vec3 color = std::get<1>(t);
-
-        float light_vec_t = glm::length(point_on_light - intersection_point);
-        if (light_vec_t == 0.0f) {
-            drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
-            continue;
-        }
-        glm::vec3 light_vec_dir = glm::normalize(point_on_light - intersection_point);
-
-        Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
-
-        bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
-
-        if (hit_before) {
-            drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
-        } else {
-            drawRay(ray_towards_light, color);
-        }
     }
 }
