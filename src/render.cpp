@@ -119,7 +119,7 @@ void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray,
     }
 }
 
-void segmentLightVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo)
+void segmentLightVisualDebug(Ray ray, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo)
 {
     glm::vec3 offset(-0.0001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
@@ -190,7 +190,7 @@ void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInte
             const SegmentLight segmentLight = std::get<SegmentLight>(l);
             std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(segmentLight, 100);
 
-            segmentLightVisualDebug(ray, segmentLight, bvh, samples, features, hitInfo);
+            segmentLightVisualDebug(ray, bvh, samples, features, hitInfo);
            
             //compute avg color
             if (samples.size() == 0) {
@@ -220,7 +220,11 @@ void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInte
             color = color / glm::vec3(samples.size());
 
         } else if (std::holds_alternative<ParallelogramLight>(l)) {
-        
+            
+            const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(l);
+            std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(parallelogramLight, 100);
+
+            segmentLightVisualDebug(ray, bvh, samples, features, hitInfo);
         }
     }
 }
