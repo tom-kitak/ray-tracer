@@ -28,23 +28,16 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
 
 
-        //Tom Kitak additions enableHardShadow START
         if (features.enableHardShadow) {
-            
             hardShadowVisualDebug(scene, bvh, ray, features, hitInfo);
-
-            for (std::variant<PointLight, SegmentLight, ParallelogramLight> l : scene.lights) { 
-                PointLight point_light = std::get<PointLight>(l);
-                glm::vec3 samplePos = point_light.position;
-                float color_res = testVisibilityLightSample(samplePos, point_light.color, bvh, features, ray, hitInfo);
-                   
-                if (color_res == 0.0f) {
-                    Lo = glm::vec3(0.0f);
-                }
-                
-            }
         }
-        //Tom Kitak additions enableHardShadow END
+        if (features.enableSoftShadow) {
+
+            glm::vec3 color(0.0f);
+            enableSoftShadowActions(color, scene, bvh, ray, features, rayDepth, hitInfo);
+
+            Lo = (Lo + color) / glm::vec3(2.0f);
+        }
 
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
         // Draw a white debug ray if the ray hits.
@@ -85,52 +78,27 @@ void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray,
     glm::vec3 offset(-0.00001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
 
-    for (std::variant<PointLight, SegmentLight, ParallelogramLight> l : scene.lights) {
+    for (const auto& l : scene.lights) {
+        if (std::holds_alternative<PointLight>(l)) {
+            PointLight point_light = std::get<PointLight>(l);
+            glm::vec3 samplePos = point_light.position;
 
-        PointLight point_light = std::get<PointLight>(l);
-        glm::vec3 samplePos = point_light.position;
+            float shadow_vec_t = glm::length(samplePos - intersection_point);
+            if (shadow_vec_t == 0.0f) {
+                drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
+                return;
+            }
+            glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
 
-        float shadow_vec_t = glm::length(samplePos - intersection_point);
-        if (shadow_vec_t == 0.0f) {
-            drawRay(Ray { intersection_point, glm::vec3(0.0f), 0}, glm::vec3(1.0f));
-            return;
-        }
-        glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
-        
-        Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
+            Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
 
-        bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+            bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
 
-        if (hit_before) { 
-            drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
-        } else {
-            drawRay(ray_towards_light, glm::vec3(1.0f));
+            if (hit_before) {
+                drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
+            } else {
+                drawRay(ray_towards_light, glm::vec3(1.0f));
+            }
         }
     }
 }
-
-//void normalInterpolationVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
-//{
-//    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
-//
-//    if (bvh.intersect(ray, hitInfo, features)) {
-//        if (!features.enableAccelStructure) {
-//            bool hit = false;
-//            for (const auto& mesh : scene.meshes) {
-//                for (const auto& tri : mesh.triangles) {
-//                    const auto v0 = mesh.vertices[tri[0]];
-//                    const auto v1 = mesh.vertices[tri[1]];
-//                    const auto v2 = mesh.vertices[tri[2]];
-//                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-//                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
-//                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
-//
-//                        // Interpolated normal will be green
-//                        Ray interpolatedNormalRay = { intersection_point, interpolatedNormal, 10.0f };
-//                        drawRay(interpolatedNormalRay, glm::vec3(0.0f, 1.0f, 0.0f));
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
