@@ -70,6 +70,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 {
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
+        Vertex ver0;
+        Vertex ver1;
+        Vertex ver2;
         bool hit = false;
         // Intersect with all triangles of all meshes.
         for (const auto& mesh : m_pScene->meshes) {
@@ -85,26 +88,37 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     } else {
                         hitInfo.normal = glm::normalize(cross);
                     }
-                    if (features.enableNormalInterp) {
-                        glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
-                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
-                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
-                        hitInfo.normal = interpolatedNormal;
-                    }
+
+                    ver0 = v0;
+                    ver1 = v1;
+                    ver2 = v2;
+
                     hit = true;
-
-                    // draw normals of the intersected triangles
-                    // normals will be drawn blue
-                    Ray ray0 = { v0.position, v0.normal, 10.0f };
-                    Ray ray1 = { v1.position, v1.normal, 10.0f };
-                    Ray ray2 = { v2.position, v2.normal, 10.0f };
-
-                    drawRay(ray0, glm::vec3(0.0f, 0.0f, 1.0f));
-                    drawRay(ray1, glm::vec3(0.0f, 0.0f, 1.0f));
-                    drawRay(ray2, glm::vec3(0.0f, 0.0f, 1.0f));
                 }
             }
         }
+
+        // Visual debug interpolated normal
+        if (features.enableNormalInterp && hit) {
+            glm::vec3 intersection_point = ray.origin + ray.t * ray.direction;
+            glm::vec3 barycentricCoordinates = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, intersection_point);
+            glm::vec3 interpolatedNormal = glm::normalize(interpolateNormal(ver0.normal, ver1.normal, ver2.normal, barycentricCoordinates));
+            hitInfo.normal = interpolatedNormal;
+
+            // interpolated normal will be green
+            drawRay({ intersection_point, interpolatedNormal, 1.0f }, glm::vec3(0, 1, 0));
+
+            // draw normals of the intersected triangles
+            // normals will be drawn blue
+            Ray ray0 = { ver0.position, ver0.normal, 1.0f };
+            Ray ray1 = { ver1.position, ver1.normal, 1.0f };
+            Ray ray2 = { ver2.position, ver2.normal, 1.0f };
+
+            drawRay(ray0, glm::vec3(0.0f, 0.0f, 1.0f));
+            drawRay(ray1, glm::vec3(0.0f, 0.0f, 1.0f));
+            drawRay(ray2, glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres) {
             if (intersectRayWithShape(sphere, ray, hitInfo)) {

@@ -44,12 +44,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         }
         //Tom Kitak additions enableHardShadow END
 
-        // Lieke Sanders additions enableNormalInterpolation START
-        if (features.enableNormalInterp) {
-            normalInterpolationVisualDebug(scene, bvh, ray, features, hitInfo);
-        }
-        // Lieke Sanders additions enableNormalInterpolation END
-
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
         // Draw a white debug ray if the ray hits.
         drawRay(ray, Lo);
@@ -113,28 +107,28 @@ void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray,
     }
 }
 
-void normalInterpolationVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
-{
-    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
-
-    if (bvh.intersect(ray, hitInfo, features)) {
-        if (!features.enableAccelStructure) {
-            bool hit = false;
-            for (const auto& mesh : scene.meshes) {
-                for (const auto& tri : mesh.triangles) {
-                    const auto v0 = mesh.vertices[tri[0]];
-                    const auto v1 = mesh.vertices[tri[1]];
-                    const auto v2 = mesh.vertices[tri[2]];
-                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
-                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
-
-                        // Interpolated normal will be green
-                        Ray interpolatedNormalRay = { intersection_point, interpolatedNormal, 10.0f };
-                        drawRay(interpolatedNormalRay, glm::vec3(0.0f, 1.0f, 0.0f));
-                    }
-                }
-            }
-        }
-    }
-}
+//void normalInterpolationVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
+//{
+//    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
+//
+//    if (bvh.intersect(ray, hitInfo, features)) {
+//        if (!features.enableAccelStructure) {
+//            bool hit = false;
+//            for (const auto& mesh : scene.meshes) {
+//                for (const auto& tri : mesh.triangles) {
+//                    const auto v0 = mesh.vertices[tri[0]];
+//                    const auto v1 = mesh.vertices[tri[1]];
+//                    const auto v2 = mesh.vertices[tri[2]];
+//                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+//                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
+//                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
+//
+//                        // Interpolated normal will be green
+//                        Ray interpolatedNormalRay = { intersection_point, interpolatedNormal, 10.0f };
+//                        drawRay(interpolatedNormalRay, glm::vec3(0.0f, 1.0f, 0.0f));
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}

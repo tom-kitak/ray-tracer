@@ -16,7 +16,7 @@ glm::vec3 interpolateNormal (const glm::vec3& n0, const glm::vec3& n1, const glm
 {
     // Then use the barycentric weights to interpolate the vertices normals
     // It is computed as the normalized average of the surface normals of the faces that contain that vertex
-    const glm::vec3 normal = ( barycentricCoord.x * n0, barycentricCoord.y * n1, barycentricCoord.z * n2 );
+    const glm::vec3 normal = ( barycentricCoord.x * n0 + barycentricCoord.y * n1 + barycentricCoord.z * n2 );
     return normal;
 }
 
