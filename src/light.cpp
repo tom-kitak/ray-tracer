@@ -39,12 +39,13 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
     position = parallelogramLight.v0 + alpha * parallelogramLight.edge01 + beta * parallelogramLight.edge02;
 
     // 2. Calculate the color
-    glm::vec3 alpha_lower = parallelogramLight.color0 * (1 - alpha) + parallelogramLight.color1 * alpha;
+    color = ((1 - alpha) * (1 - beta)) * parallelogramLight.color0 + ((alpha) * (1 - beta)) * parallelogramLight.color1 + ((1 - alpha) * (beta)) * parallelogramLight.color2 + ((alpha) * (beta)) * parallelogramLight.color3;
+   /* glm::vec3 alpha_lower = parallelogramLight.color0 * (1 - alpha) + parallelogramLight.color1 * alpha;
     glm::vec3 alpha_upper = parallelogramLight.color2 * (1 - alpha) + parallelogramLight.color3 * alpha;
 
     glm::vec3 beta_lower = parallelogramLight.color0 * (1 - beta) + parallelogramLight.color2 * beta;
     glm::vec3 beta_upper = parallelogramLight.color1 * (1 - beta) + parallelogramLight.color3 * beta;
-    color = glm::vec3(0.5) * (alpha_lower * (1 - alpha) + alpha_upper * alpha) + glm::vec3(0.5) * (beta_lower * (1 - beta) + beta_upper * beta);
+    color = glm::vec3(0.5) * (alpha_lower * (1 - alpha) + alpha_upper * alpha) + glm::vec3(0.5) * (beta_lower * (1 - beta) + beta_upper * beta);*/
 }
 
 // test the visibility at a given light sample
