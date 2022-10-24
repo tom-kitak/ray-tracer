@@ -1,6 +1,5 @@
 #include "light.h"
 #include "config.h"
-
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -8,44 +7,21 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <cmath>
 
+
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
-    //1. Sample a position from segmentLight: get random vector
-    glm::vec3 p0_to_p1 = segmentLight.endpoint1 - segmentLight.endpoint0;
-    float random = (float)rand() / RAND_MAX;
-    position = segmentLight.endpoint0 + random * p0_to_p1;
-    
-    //2. Calculate the color
-    color = segmentLight.color0 * (1 - random) + segmentLight.color1 * random;
+    position = glm::vec3(0.0);
+    color = glm::vec3(0.0);
 }
 
 // samples a parallelogram light source
 // you should fill in the vectors position and color with the sampled position and color
-//     a_upper
-// 2 ____|_ 3
-//  |      | 
-//  |      |__b_upper 
-//  |______| 
-// 0     |  1
-//      a_lower
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
-    // 1. Sample a position from parallelogramLight: get random vector
-    
-    float alpha = (float)rand() / RAND_MAX;
-    float beta = (float)rand() / RAND_MAX;
-    position = parallelogramLight.v0 + alpha * parallelogramLight.edge01 + beta * parallelogramLight.edge02;
-
-    // 2. Calculate the color
-    color = ((1 - alpha) * (1 - beta)) * parallelogramLight.color0 + ((alpha) * (1 - beta)) * parallelogramLight.color1 + ((1 - alpha) * (beta)) * parallelogramLight.color2 + ((alpha) * (beta)) * parallelogramLight.color3;
-   /* glm::vec3 alpha_lower = parallelogramLight.color0 * (1 - alpha) + parallelogramLight.color1 * alpha;
-    glm::vec3 alpha_upper = parallelogramLight.color2 * (1 - alpha) + parallelogramLight.color3 * alpha;
-
-    glm::vec3 beta_lower = parallelogramLight.color0 * (1 - beta) + parallelogramLight.color2 * beta;
-    glm::vec3 beta_upper = parallelogramLight.color1 * (1 - beta) + parallelogramLight.color3 * beta;
-    color = glm::vec3(0.5) * (alpha_lower * (1 - alpha) + alpha_upper * alpha) + glm::vec3(0.5) * (beta_lower * (1 - beta) + beta_upper * beta);*/
+    position = glm::vec3(0.0);
+    color = glm::vec3(0.0);
 }
 
 // test the visibility at a given light sample
