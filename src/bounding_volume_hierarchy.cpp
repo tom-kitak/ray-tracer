@@ -85,6 +85,12 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                     } else {
                         hitInfo.normal = glm::normalize(cross);
                     }
+                    if (features.enableNormalInterp) {
+                        glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
+                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
+                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
+                        hitInfo.normal = interpolatedNormal;
+                    }
                     hit = true;
 
                     // draw normals of the intersected triangles

@@ -5,12 +5,6 @@ glm::vec3 computeBarycentricCoord (const glm::vec3& v0, const glm::vec3& v1, con
 {
     // Given the intersection point inside a triangle, compute its barycentric coordinates
     float A = 0.5 * std::abs(glm::length(glm::cross((v2 - v0), (v1 - v0))));
-    // const glm::vec3 AB = v1 - v0;
-    // const glm::vec3 AC = v2 - v0;
-    // float A = 0.5 * std::sqrt((pow(AB.y * AC.z - AB.z * AC.y, 2)) + (pow(AB.z * AC.x - AB.x * AC.z, 2)) + (pow(AB.x * AC.y - AB.y * AC.x, 2)));
-
-    // float alpha = dot((p - v0), glm::normalize(v1 - v0));
-    // float beta = dot((p - v0), glm::normalize(v2 - v0));
 
     float alpha = (0.5 * std::abs(glm::length(glm::cross((v1 - p), (v2 - p))) / A));
     float beta = (0.5 * std::abs(glm::length(glm::cross((v0 - p), (v2 - p))) / A));
@@ -21,7 +15,7 @@ glm::vec3 computeBarycentricCoord (const glm::vec3& v0, const glm::vec3& v1, con
 glm::vec3 interpolateNormal (const glm::vec3& n0, const glm::vec3& n1, const glm::vec3& n2, const glm::vec3 barycentricCoord)
 {
     // Then use the barycentric weights to interpolate the vertices normals
-    //  it is computed as the normalized average of the surface normals of the faces that contain that vertex
+    // It is computed as the normalized average of the surface normals of the faces that contain that vertex
     const glm::vec3 normal = ( barycentricCoord.x * n0, barycentricCoord.y * n1, barycentricCoord.z * n2 );
     return normal;
 }
