@@ -188,19 +188,6 @@ void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInte
         
         std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(l, 100);
 
-        //if (std::holds_alternative<SegmentLight>(l)) {
-
-        //    const SegmentLight segmentLight = std::get<SegmentLight>(l);
-        //    //std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(segmentLight, 100);
-
-        //    
-        //} else if (std::holds_alternative<ParallelogramLight>(l)) {
-
-        //    const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(l);
-        //    //std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(parallelogramLight, 100);
-
-        //    //segmentLightVisualDebug(ray, bvh, samples, features, hitInfo);
-        //}
         softShadowsVisualDebug(ray, bvh, samples, features, hitInfo);
 
             //compute avg color
