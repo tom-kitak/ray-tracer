@@ -113,24 +113,45 @@ void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray,
 //{
 //    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t * ray.direction;
 //
-//    if (bvh.intersect(ray, hitInfo, features)) {
-//        if (!features.enableAccelStructure) {
-//            bool hit = false;
-//            for (const auto& mesh : scene.meshes) {
-//                for (const auto& tri : mesh.triangles) {
-//                    const auto v0 = mesh.vertices[tri[0]];
-//                    const auto v1 = mesh.vertices[tri[1]];
-//                    const auto v2 = mesh.vertices[tri[2]];
-//                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-//                        glm::vec3 barycentricCoordinates = computeBarycentricCoord(v0.position, v1.position, v2.position, intersection_point);
-//                        glm::vec3 interpolatedNormal = interpolateNormal(v0.normal, v1.normal, v2.normal, barycentricCoordinates);
-//
-//                        // Interpolated normal will be green
-//                        Ray interpolatedNormalRay = { intersection_point, interpolatedNormal, 10.0f };
-//                        drawRay(interpolatedNormalRay, glm::vec3(0.0f, 1.0f, 0.0f));
-//                    }
-//                }
-//            }
-//        }
-//    }
+//    return vec_position_color;
 //}
+
+void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo)
+{
+    glm::vec3 offset(-0.0001f);
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
+
+    for (const auto& l : scene.lights) {
+        
+        std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(l, 100);
+
+        softShadowsVisualDebug(ray, bvh, samples, features, hitInfo);
+
+            //compute avg color
+        if (samples.size() == 0) {
+            return;
+        }
+        for (std::tuple<glm::vec3, glm::vec3> t : samples) {
+            glm::vec3 curr_point_on_light = std::get<0>(t);
+            glm::vec3 curr_color = std::get<1>(t);
+
+            float light_vec_t = glm::length(curr_point_on_light - intersection_point);
+            //if (light_vec_t == 0.0f) {
+            //    continue;
+            //}
+            glm::vec3 light_vec_dir = glm::normalize(curr_point_on_light - intersection_point);
+
+            Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
+
+            bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+
+            if (hit_before) {
+                continue;
+            } else {
+                // color += computeShading(curr_light_pos, curr_color, features, ray, hitInfo);
+                color += curr_color;
+            }
+        }
+        color = color / glm::vec3(samples.size());
+    }
+}
