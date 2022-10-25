@@ -106,8 +106,10 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             const PointLight pointLight = std::get<PointLight>(light);
             glm::vec3 retColor;
             if (features.enableShading) {
+                // If shading is enabled compute the phong shading for the light.
                 retColor = computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
             } else {
+                // If shading is disabled use the albedo of the material.
                 retColor = hitInfo.material.kd;
             }
             if (features.enableHardShadow && testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) == 0.0f) {
@@ -122,12 +124,15 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             glm::vec3 position;
             glm::vec3 color;
             glm::vec3 retColor = glm::vec3(0, 0, 0);
+            // Cycle through 100 samples and compute the contribution.
             for (int i = 0; i < 100; i++) {
                 glm::vec3 temp = glm::vec3(0, 0, 0);
                 sampleSegmentLight(segmentLight, position, color);
                 if (features.enableShading) {
+                    // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
                 } else {
+                    // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
                 }
                 if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
@@ -144,12 +149,15 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             glm::vec3 position;
             glm::vec3 color;
             glm::vec3 retColor = glm::vec3(0, 0, 0);
+            // Cycle through 100 samples and compute the contribution.
             for (int i = 0; i < 100; i++) {
                 glm::vec3 temp = glm::vec3(0, 0, 0);
                 sampleParallelogramLight(parallelogramLight, position, color);
                 if (features.enableShading) {
+                    // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
                 } else {
+                    // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
                 }
                 if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
