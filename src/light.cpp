@@ -7,21 +7,35 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <cmath>
 
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo);
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
+    // 1. Sample a position from segmentLight: get random vector
+    glm::vec3 p0_to_p1 = segmentLight.endpoint1 - segmentLight.endpoint0;
+    float random = (float)rand() / RAND_MAX;
+    position = segmentLight.endpoint0 + random * p0_to_p1;
+
+    // 2. Calculate the color
+    color = segmentLight.color0 * (1 - random) + segmentLight.color1 * random;
 }
 
 // samples a parallelogram light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm::vec3& position, glm::vec3& color)
 {
-    position = glm::vec3(0.0);
-    color = glm::vec3(0.0);
+    // 1. Sample a position from parallelogramLight: get random vector
+
+    float alpha = (float)rand() / RAND_MAX;
+    float beta = (float)rand() / RAND_MAX;
+    position = parallelogramLight.v0 + alpha * parallelogramLight.edge01 + beta * parallelogramLight.edge02;
+
+    // 2. Calculate the color
+    color = ((1 - alpha) * (1 - beta)) * parallelogramLight.color0 + ((alpha) * (1 - beta)) * parallelogramLight.color1 + ((1 - alpha) * (beta)) * parallelogramLight.color2 + ((alpha) * (beta)) * parallelogramLight.color3;
+
 }
 
 // test the visibility at a given light sample
@@ -85,32 +99,117 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 // loadScene function in scene.cpp). Custom lights will not be visible in rasterization view.
 glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    if (features.enableShading) {
-        // If shading is enabled, compute the contribution from all lights.
-
-        glm::vec3 ret = glm::vec3(0, 0, 0);
-        for (const auto& light : scene.lights) {
-            if (std::holds_alternative<PointLight>(light)) {
-                const PointLight pointLight = std::get<PointLight>(light);
-                ret += computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
-            } else if (std::holds_alternative<SegmentLight>(light)) {
-                const SegmentLight segmentLight = std::get<SegmentLight>(light);
-                glm::vec3 position;
-                glm::vec3 color;
-                sampleSegmentLight(segmentLight, position, color);
-                ret += computeShading(position, color, features, ray, hitInfo);
-            } else if (std::holds_alternative<ParallelogramLight>(light)) {
-                const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-                glm::vec3 position;
-                glm::vec3 color;
-                sampleParallelogramLight(parallelogramLight, position, color);
-                ret += computeShading(position, color, features, ray, hitInfo);
+    Ray rayCopy = ray;
+    glm::vec3 ret = glm::vec3(0, 0, 0);
+    for (const auto& light : scene.lights) {
+        if (std::holds_alternative<PointLight>(light)) {
+            const PointLight pointLight = std::get<PointLight>(light);
+            glm::vec3 retColor;
+            if (features.enableShading) {
+                retColor = computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else {
+                retColor = hitInfo.material.kd;
             }
+            if (features.enableHardShadow && testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) == 0.0f) {
+                retColor = glm::vec3(0, 0, 0);
+            }
+            if (features.enableHardShadow) {
+                hardShadowVisualDebug(pointLight, bvh, rayCopy, features, hitInfo);
+            }
+            ret += retColor;
+        } else if (std::holds_alternative<SegmentLight>(light)) {
+            const SegmentLight segmentLight = std::get<SegmentLight>(light);
+            glm::vec3 position;
+            glm::vec3 color;
+            glm::vec3 retColor = glm::vec3(0, 0, 0);
+            for (int i = 0; i < 100; i++) {
+                glm::vec3 temp = glm::vec3(0, 0, 0);
+                sampleSegmentLight(segmentLight, position, color);
+                if (features.enableShading) {
+                    temp = computeShading(position, color, features, ray, hitInfo);
+                } else {
+                    temp = hitInfo.material.kd;
+                }
+                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
+                    temp = glm::vec3(0, 0, 0);
+                }
+                if (features.enableSoftShadow) {
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                }
+                retColor += temp;
+            }
+            ret += retColor / 100.0f;
+        } else if (std::holds_alternative<ParallelogramLight>(light)) {
+            const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
+            glm::vec3 position;
+            glm::vec3 color;
+            glm::vec3 retColor = glm::vec3(0, 0, 0);
+            for (int i = 0; i < 100; i++) {
+                glm::vec3 temp = glm::vec3(0, 0, 0);
+                sampleParallelogramLight(parallelogramLight, position, color);
+                if (features.enableShading) {
+                    temp = computeShading(position, color, features, ray, hitInfo);
+                } else {
+                    temp = hitInfo.material.kd;
+                }
+                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
+                    temp = glm::vec3(0, 0, 0);
+                }
+                if (features.enableSoftShadow) {
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                }
+                retColor += temp;
+            }
+            ret += retColor / 100.0f;
         }
-        return ret;
+    }
+    return ret;
+}
 
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
+{
+    glm::vec3 offset(-0.00001f);
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
+
+    glm::vec3 samplePos = point_light.position;
+
+    float shadow_vec_t = glm::length(samplePos - intersection_point);
+    if (shadow_vec_t == 0.0f) {
+        drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
+        return;
+    }
+    glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
+
+    Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
+
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+
+    if (hit_before) {
+        drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
     } else {
-        // If shading is disabled, return the albedo of the material.
-        return hitInfo.material.kd;
+        drawRay(ray_towards_light, glm::vec3(1.0f));
+    }
+}
+
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo)
+{
+    glm::vec3 offset(-0.0001f);
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
+
+    float light_vec_t = glm::length(samplePos - intersection_point);
+    if (light_vec_t == 0.0f) {
+        drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
+        return;
+    }
+    glm::vec3 light_vec_dir = glm::normalize(samplePos - intersection_point);
+
+    Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
+
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+
+    if (hit_before) {
+        drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
+    } else {
+        drawRay(ray_towards_light, color);
     }
 }
