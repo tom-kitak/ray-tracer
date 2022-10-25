@@ -7,9 +7,9 @@ DISABLE_WARNINGS_PUSH()
 DISABLE_WARNINGS_POP()
 #include <cmath>
 
-std::vector<std::tuple<glm::vec3, glm::vec3>> sampledLightMultipleTimes(std::variant<PointLight, SegmentLight, ParallelogramLight> light, int n);
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
 
-    // samples a segment light source
+// samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
 void sampleSegmentLight(const SegmentLight& segmentLight, glm::vec3& position, glm::vec3& color)
 {
@@ -98,6 +98,7 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 // loadScene function in scene.cpp). Custom lights will not be visible in rasterization view.
 glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
 {
+    Ray rayCopy = ray;
     glm::vec3 ret = glm::vec3(0, 0, 0);
     for (const auto& light : scene.lights) {
         if (std::holds_alternative<PointLight>(light)) {
@@ -111,14 +112,15 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             if (features.enableHardShadow && testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) == 0.0f) {
                 retColor = glm::vec3(0, 0, 0);
             }
+            if (features.enableHardShadow) {
+                hardShadowVisualDebug(pointLight, bvh, rayCopy, features, hitInfo);
+            }
             ret += retColor;
         } else if (std::holds_alternative<SegmentLight>(light)) {
             const SegmentLight segmentLight = std::get<SegmentLight>(light);
-            
-            std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(light, 100);
-           
+            glm::vec3 position;
+            glm::vec3 color;
             glm::vec3 retColor = glm::vec3(0, 0, 0);
-
             for (int i = 0; i < 100; i++) {
                 glm::vec3 temp = glm::vec3(0, 0, 0);
                 sampleSegmentLight(segmentLight, position, color);
@@ -133,7 +135,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 retColor += temp;
             }
             ret += retColor / 100.0f;
-
         } else if (std::holds_alternative<ParallelogramLight>(light)) {
             const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
             glm::vec3 position;
@@ -158,59 +159,27 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
     return ret;
 }
 
-std::vector<std::tuple<glm::vec3, glm::vec3>> sampledLightMultipleTimes(std::variant<PointLight, SegmentLight, ParallelogramLight> light, int n)
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
 {
-    std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color;
-    for (int i = 0; i < n; i++) {
-        glm::vec3 position;
-        glm::vec3 color;
-        if (std::holds_alternative<SegmentLight>(light)) {
-            const SegmentLight segmentLight = std::get<SegmentLight>(light);
-            sampleSegmentLight(segmentLight, position, color);
-        } else if (std::holds_alternative<ParallelogramLight>(light)) {
-            const ParallelogramLight parallelogramLight = std::get<ParallelogramLight>(light);
-            sampleParallelogramLight(parallelogramLight, position, color);
-        }
-        vec_position_color.push_back(std::make_tuple(position, color));
-    }
-
-    return vec_position_color;
-}
-
-void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo)
-{
-    glm::vec3 offset(-0.0001f);
+    glm::vec3 offset(-0.00001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
 
-    std::vector<std::tuple<glm::vec3, glm::vec3>> samples = sampledLightMultipleTimes(l, 100);
+    glm::vec3 samplePos = point_light.position;
 
-    softShadowsVisualDebug(ray, bvh, samples, features, hitInfo);
+    float shadow_vec_t = glm::length(samplePos - intersection_point);
+    if (shadow_vec_t == 0.0f) {
+        drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
+        return;
+    }
+    glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
 
-        // compute avg color
-        if (samples.size() == 0) {
-            return;
-        }
-        for (std::tuple<glm::vec3, glm::vec3> t : samples) {
-            glm::vec3 curr_point_on_light = std::get<0>(t);
-            glm::vec3 curr_color = std::get<1>(t);
+    Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
 
-            float light_vec_t = glm::length(curr_point_on_light - intersection_point);
-            // if (light_vec_t == 0.0f) {
-            //     continue;
-            // }
-            glm::vec3 light_vec_dir = glm::normalize(curr_point_on_light - intersection_point);
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
 
-            Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
-
-            bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
-
-            if (hit_before) {
-                continue;
-            } else {
-                // color += computeShading(curr_light_pos, curr_color, features, ray, hitInfo);
-                color += curr_color;
-            }
-        }
-        color = color / glm::vec3(samples.size());
+    if (hit_before) {
+        drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
+    } else {
+        drawRay(ray_towards_light, glm::vec3(1.0f));
     }
 }

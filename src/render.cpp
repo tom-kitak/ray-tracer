@@ -9,8 +9,8 @@
 #endif
 
 void hardShadowVisualDebug(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
-void softShadowsVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo);
-void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo);
+//void softShadowsVisualDebug(Ray ray, SegmentLight segmentLight, const BvhInterface& bvh, std::vector<std::tuple<glm::vec3, glm::vec3>> vec_position_color, const Features& features, HitInfo hitInfo);
+//void enableSoftShadowActions(glm::vec3& color, const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth, HitInfo hitInfo);
 std::vector<std::tuple<glm::vec3, glm::vec3>> sampledLightMultipleTimes(std::variant<PointLight, SegmentLight, ParallelogramLight> light, int n);
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
@@ -27,17 +27,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
 
-
-        if (features.enableHardShadow) {
-            hardShadowVisualDebug(scene, bvh, ray, features, hitInfo);
-        }
-        if (features.enableSoftShadow) {
-
-            glm::vec3 color(0.0f);
-            enableSoftShadowActions(color, scene, bvh, ray, features, rayDepth, hitInfo);
-
-            Lo = (Lo + color) / glm::vec3(2.0f);
-        }
 
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
         // Draw a white debug ray if the ray hits.
