@@ -8,6 +8,7 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 
 void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo);
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -132,6 +133,9 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
                     temp = glm::vec3(0, 0, 0);
                 }
+                if (features.enableSoftShadow) {
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                }
                 retColor += temp;
             }
             ret += retColor / 100.0f;
@@ -150,6 +154,9 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 }
                 if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
                     temp = glm::vec3(0, 0, 0);
+                }
+                if (features.enableSoftShadow) {
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
                 }
                 retColor += temp;
             }
@@ -181,5 +188,28 @@ void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray 
         drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
     } else {
         drawRay(ray_towards_light, glm::vec3(1.0f));
+    }
+}
+
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo)
+{
+    glm::vec3 offset(-0.0001f);
+    glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
+
+    float light_vec_t = glm::length(samplePos - intersection_point);
+    if (light_vec_t == 0.0f) {
+        drawRay(Ray { intersection_point, glm::vec3(0.0f), 0 }, glm::vec3(1.0f));
+        return;
+    }
+    glm::vec3 light_vec_dir = glm::normalize(samplePos - intersection_point);
+
+    Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
+
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+
+    if (hit_before) {
+        drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
+    } else {
+        drawRay(ray_towards_light, color);
     }
 }
