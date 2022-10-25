@@ -3,6 +3,8 @@
 #include <glm/geometric.hpp>
 #include <shading.h>
 
+// Compute the shading according to the phong model for a light source
+// https://en.wikipedia.org/wiki/Phong_reflection_model
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
     glm::vec3 hitPos = ray.origin + ray.t * ray.direction;
@@ -16,7 +18,7 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     return (specular * hitInfo.material.ks * lightColor) + (angle * lightColor * hitInfo.material.kd);
 }
 
-
+// Compute the reflection ray 
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     glm::vec3 hitPos = ray.origin + ray.t * ray.direction;
