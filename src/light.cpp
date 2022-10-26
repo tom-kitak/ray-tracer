@@ -134,7 +134,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                    HitInfo dummy;
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
                 }
                 retColor += temp;
             }
@@ -156,7 +157,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                    HitInfo dummy;
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
                 }
                 retColor += temp;
             }
