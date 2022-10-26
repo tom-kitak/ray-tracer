@@ -127,6 +127,14 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 hit = true;
             }
         }
+
+        // Adding textureCoordinates
+        if (hit) {
+             glm::vec3 p = ray.origin + ray.t * ray.direction;
+             glm::vec3 b_crods = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, p);
+             hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
+        }
+
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.

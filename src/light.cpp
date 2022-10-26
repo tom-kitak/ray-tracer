@@ -6,6 +6,7 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
+#include <texture.h>
 
 void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
 void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo);
@@ -107,6 +108,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             glm::vec3 retColor;
             if (features.enableShading) {
                 retColor = computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else if (features.enableTextureMapping) {
+                retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
             } else {
                 retColor = hitInfo.material.kd;
             }
@@ -127,6 +130,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 sampleSegmentLight(segmentLight, position, color);
                 if (features.enableShading) {
                     temp = computeShading(position, color, features, ray, hitInfo);
+                } else if (features.enableTextureMapping) {
+                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
                 } else {
                     temp = hitInfo.material.kd;
                 }
@@ -150,6 +155,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 sampleParallelogramLight(parallelogramLight, position, color);
                 if (features.enableShading) {
                     temp = computeShading(position, color, features, ray, hitInfo);
+                } else if (features.enableTextureMapping) {
+                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
                 } else {
                     temp = hitInfo.material.kd;
                 }
