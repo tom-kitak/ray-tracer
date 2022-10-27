@@ -8,6 +8,10 @@
 #include <omp.h>
 #endif
 
+#include <iostream>
+
+glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, int rayDepth);
+
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
 {
     HitInfo hitInfo;
@@ -23,6 +27,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         
         // Clamp the rgb values between 0 and 1.
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
+
+        if (features.extra.enableTransparency) {
+            Lo = addTransparencyForPixel(Lo, ray, hitInfo, features, bvh, scene, rayDepth);
+        }
 
         // Draw a debug ray with the color of Lo if the ray hits.
         drawRay(ray, Lo);
@@ -55,4 +63,27 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
         }
     }
+}
+
+glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, int rayDepth)
+{
+    if (hitInfo.material.transparency == 1.0f || ray.t == std::numeric_limits<float>::max()) {
+        return color;
+    }
+    glm::vec3 offset(0.001f);
+    glm::vec3 point_on_surface = ray.origin + ray.t * ray.direction + ray.direction * offset;
+
+    Ray ray_from_point_on_surface { point_on_surface , ray.direction };
+    
+    HitInfo hi;
+    //background set to default black
+    glm::vec3 backgroundAll(0.0f);
+    
+    if (bvh.intersect(ray_from_point_on_surface, hi, features) && ray_from_point_on_surface.t != std::numeric_limits<float>::max()) {
+        //glm::vec3 background_color = computeLightContribution(scene, bvh, features, ray_from_point_on_surface, hi); 
+        //backgroundAll = addTransparencyForPixel(background_color, ray_from_point_on_surface, hi, features, bvh, scene);
+        backgroundAll = getFinalColor(scene, bvh, ray_from_point_on_surface, features, rayDepth);
+    }
+    
+    return glm::vec3(hitInfo.material.transparency) * color + glm::vec3(1 - hitInfo.material.transparency) * backgroundAll;
 }
