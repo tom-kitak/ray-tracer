@@ -14,6 +14,6 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
 
     // Repeating pattern
     int x_wrap = x % image.width;
-    int y_wrap = y & image.height;
+    int y_wrap = y % image.height;
     return image.pixels[y_wrap * image.width + x_wrap];
 }
