@@ -6,6 +6,7 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 
+bool intersectNode(Node node, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene);
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
@@ -405,6 +406,43 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
+        return intersectNode(m_nodes[0], ray, hitInfo, features, m_nodes, m_pScene);
+    }
+
+}
+
+bool intersectNode(Node node, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene)
+{
+    AxisAlignedBox aabb = { node.lowerBound, node.upperBound };
+    Ray rayCopy = ray;
+    if (!intersectRayWithShape(aabb, rayCopy)) {
         return false;
     }
+    bool hit = false;
+    if (node.typeLeaf == 0) {
+        if (intersectNode(nodes[node.indices[0].first], ray, hitInfo, features, nodes, scene)) {
+            hit = true;
+        }
+        if (intersectNode(nodes[node.indices[0].second], ray, hitInfo, features, nodes, scene)) {
+            hit = true;
+        }
+    } else {
+        for (const Tuple t : node.indices) {
+            const auto v0 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][0]];
+            const auto v1 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][1]];
+            const auto v2 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][2]];
+            if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                hitInfo.material = scene->meshes[t.first].material;
+                glm::vec3 cross = glm::cross((v0.position - v2.position), (v1.position - v2.position));
+                if (cross == glm::vec3(0, 0, 0)) {
+                    hitInfo.normal = glm::vec3(1, 0, 0);
+                } else {
+                    hitInfo.normal = glm::normalize(cross);
+                }
+
+                hit = true;
+            }
+        }
+    }
+    return hit;
 }
