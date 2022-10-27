@@ -18,11 +18,6 @@ struct HitInfo {
     Material material;
 };
 
-struct Tuple {
-    int first;
-    int second;
-};
-
 struct Plane {
     float D = 0.0f;
     glm::vec3 normal { 0.0f, 1.0f, 0.0f };
