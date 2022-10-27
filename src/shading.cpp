@@ -3,6 +3,8 @@
 #include <glm/geometric.hpp>
 #include <shading.h>
 
+// Compute the shading according to the phong model for a light source
+// https://en.wikipedia.org/wiki/Phong_reflection_model
 const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& lightColor, const Features& features, Ray ray, HitInfo hitInfo)
 {
     glm::vec3 hitPos = ray.origin + ray.t * ray.direction;
@@ -13,10 +15,14 @@ const glm::vec3 computeShading(const glm::vec3& lightPosition, const glm::vec3& 
     float specAngle = std::max(glm::dot(reflectDir, viewDir), 0.0f);
     float specular = std::pow(specAngle, hitInfo.material.shininess);
     float angle = std::max(glm::dot(glm::normalize(hitInfo.normal), lightDir), 0.0f);
+    if (features.enableTextureMapping) {
+        glm::vec3 texture = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
+        return (specular * hitInfo.material.ks * lightColor) + (angle * lightColor * texture);
+    }
     return (specular * hitInfo.material.ks * lightColor) + (angle * lightColor * hitInfo.material.kd);
 }
 
-
+// Compute the reflection ray 
 const Ray computeReflectionRay (Ray ray, HitInfo hitInfo)
 {
     glm::vec3 hitPos = ray.origin + ray.t * ray.direction;
