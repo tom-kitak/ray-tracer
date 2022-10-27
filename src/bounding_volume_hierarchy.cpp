@@ -5,6 +5,7 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
+#include "common.h"
 
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
@@ -21,7 +22,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     m_nodes.push_back(root);
 
-    m_numLevels = recursiveSplit(0, 0, 10);
+    m_numLevels = recursiveSplit(0, 0, 20);
     m_numLeaves = 0;
 
     for (Node n : m_nodes) {
