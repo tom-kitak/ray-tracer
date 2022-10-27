@@ -5,6 +5,7 @@
 #include "texture.h"
 #include "interpolate.h"
 #include <glm/glm.hpp>
+#include "common.h"
 
 bool intersectNode(Node node, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene);
 
@@ -22,11 +23,13 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     m_nodes.push_back(root);
 
-    m_numLevels = recursiveSplit(0, 0, 10);
+    m_numLevels = recursiveSplit(0, 0, 5);
+
     m_numLeaves = 0;
 
     for (Node n : m_nodes) {
         if (n.typeLeaf == 1) {
+            m_leaves.push_back(n);
             m_numLeaves = m_numLeaves + 1;
         }
     } 
@@ -187,7 +190,7 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes.push_back(std::get<0>(children));
             int childIndexLeft = m_nodes.size() - 1;
             
-                        int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
+            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
 
             m_nodes.push_back(std::get<1>(children));
             int childIndexRight= m_nodes.size() - 1;
@@ -201,7 +204,6 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes[nodeIndex] = parent;
 
             // recurse on both children
-            // int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
             int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
             return std::max(x, y);
         }
@@ -213,7 +215,7 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes.push_back(std::get<0>(children));
             int childIndexLeft = m_nodes.size() - 1;
 
-                        int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
+            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
 
             m_nodes.push_back(std::get<1>(children));
             int childIndexRight = m_nodes.size() - 1;
@@ -227,7 +229,6 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes[nodeIndex] = parent;
 
             // recurse on both children
-            // int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
             int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
             return std::max(x, y);
         } else { // currentLevel % 3 == 2
@@ -238,7 +239,7 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes.push_back(std::get<0>(children));
             int childIndexLeft = m_nodes.size() - 1;
 
-                        int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
+            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
 
             m_nodes.push_back(std::get<1>(children));
             int childIndexRight = m_nodes.size() - 1;
@@ -252,7 +253,6 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
             m_nodes[nodeIndex] = parent;
 
             // recurse on both children
-            // int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
             int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
             return std::max(x, y);
         }
@@ -307,19 +307,39 @@ void BoundingVolumeHierarchy::recursionDrawLevel(int currentLevel, int level, in
 // i-th leaf node in the vector.
 void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 {
-    std::vector<Node> leaves;
-    for (Node n : m_nodes) {
-        if (n.typeLeaf == 1) {
-            leaves.push_back(n);
-        }
-    }
-
-    if (leafIdx >= leaves.size()) {
+    if (leafIdx >= m_leaves.size()) {
         return;
     }
 
-    AxisAlignedBox aabb { leaves[leafIdx].lowerBound, leaves[leafIdx].upperBound };
-    drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+    // draw aabb
+    AxisAlignedBox aabb { m_leaves[leafIdx].lowerBound, m_leaves[leafIdx].upperBound };
+    drawAABB(aabb, DrawMode::Wireframe);
+
+    // colors for the triangle
+    std::vector<glm::vec3> colorVector = {
+        { 0, 1, 0 },
+        { 1, 0, 1 },
+        { 1, 1, 0 },
+        { 0, 0, 1 },
+        { 1, 0, 0 }
+    };
+
+    // draw triangles
+    std::vector<Tuple> indices = m_leaves[leafIdx].indices;
+    for (int i = 0; i < indices.size(); i++) {
+        Tuple currentTuple = indices[i];
+
+        Mesh mesh = m_pScene->meshes[currentTuple.first];
+        glm::vec3 triangle = mesh.triangles[currentTuple.second];
+
+        Vertex v0 = mesh.vertices[triangle.x];
+        Vertex v1 = mesh.vertices[triangle.y];
+        Vertex v2 = mesh.vertices[triangle.z];
+
+        int index = i % colorVector.size();
+
+        drawTriangle(v0, v1, v2, colorVector[index]);
+    }    
 }
 
 

@@ -22,7 +22,9 @@ enum SceneType {
     Teapot,
     Dragon,
     Spheres,
+    TextureVisualDebug,
     Custom,
+    
 };
 
 struct Scene {
