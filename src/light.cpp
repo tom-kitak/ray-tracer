@@ -6,6 +6,7 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
+#include <texture.h>
 
 void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
 void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo);
@@ -108,6 +109,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             if (features.enableShading) {
                 // If shading is enabled compute the phong shading for the light.
                 retColor = computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
+            } else if (features.enableTextureMapping) {
+                retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
             } else {
                 // If shading is disabled use the albedo of the material.
                 retColor = hitInfo.material.kd;
@@ -131,6 +134,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableShading) {
                     // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
+                } else if (features.enableTextureMapping) {
+                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
                 } else {
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
@@ -139,7 +144,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                    HitInfo dummy;
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
                 }
                 retColor += temp;
             }
@@ -156,6 +162,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableShading) {
                     // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
+                } else if (features.enableTextureMapping) {
+                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features);
                 } else {
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
@@ -164,7 +172,8 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, hitInfo);
+                    HitInfo dummy;
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
                 }
                 retColor += temp;
             }
