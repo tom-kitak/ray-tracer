@@ -22,7 +22,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     m_nodes.push_back(root);
 
-    m_numLevels = recursiveSplit(0, 0, 20);
+    m_numLevels = recursiveSplit(0, 0, 5);
     m_numLeaves = 0;
 
     for (Node n : m_nodes) {
@@ -320,6 +320,20 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 
     AxisAlignedBox aabb { leaves[leafIdx].lowerBound, leaves[leafIdx].upperBound };
     drawAABB(aabb, DrawMode::Filled, glm::vec3(0.05f, 1.0f, 0.05f), 0.1f);
+
+    std::vector<Tuple> indices = leaves[leafIdx].indices;
+    for (int i = 0; i < indices.size(); i++) {
+        Tuple currentTuple = indices[i];
+
+        Mesh mesh = m_pScene->meshes[currentTuple.first];
+        glm::vec3 triangle = mesh.triangles[currentTuple.second];
+
+        Vertex v0 = mesh.vertices[triangle.x];
+        Vertex v1 = mesh.vertices[triangle.y];
+        Vertex v2 = mesh.vertices[triangle.z];
+
+        drawTriangle(v0, v1, v2);
+    }
 }
 
 
