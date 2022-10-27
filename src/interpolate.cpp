@@ -4,6 +4,7 @@
 glm::vec3 computeBarycentricCoord (const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& p)
 {
     // Given the intersection point inside a triangle, compute its barycentric coordinates
+    // Sources: CG lecture slides
     float A = 0.5 * std::abs(glm::length(glm::cross((v2 - v0), (v1 - v0))));
 
     float alpha = (0.5 * std::abs(glm::length(glm::cross((v1 - p), (v2 - p))) / A));
