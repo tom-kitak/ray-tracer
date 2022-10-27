@@ -84,6 +84,9 @@ glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, con
         //backgroundAll = addTransparencyForPixel(background_color, ray_from_point_on_surface, hi, features, bvh, scene);
         backgroundAll = getFinalColor(scene, bvh, ray_from_point_on_surface, features, rayDepth);
     }
-    
+    // Visual Debug for transparency:
+    // When a ray is shot towards the surface, another ray on the other side is shot and it is colored with the background color.
+    drawRay(ray_from_point_on_surface, backgroundAll);
+
     return glm::vec3(hitInfo.material.transparency) * color + glm::vec3(1 - hitInfo.material.transparency) * backgroundAll;
 }
