@@ -10,7 +10,7 @@ glm::vec3 acquireTexel(const Image& image, const glm::vec2& texCoord, const Feat
     // Note, the center of the first pixel is at image coordinates (0.5, 0.5)
       
     int x = round(texCoord[0] * image.width - 0.5);
-    int y = round(texCoord[1] * image.height - 0.5);
+    int y = round(image.height - texCoord[1] * image.height - 0.5);
 
     // Repeating pattern
     int x_wrap = x % image.width;
