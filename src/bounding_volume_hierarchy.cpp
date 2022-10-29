@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include "common.h"
 
+void mipmap(Image& image, int level);
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
@@ -420,6 +421,10 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
              hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
         }
 
+        if (features.extra.enableMipmapTextureFiltering) {
+            mipmap(*hitInfo.material.kdTexture, 1);
+        }
+
         return hit;
     } else {
         // TODO: implement here the bounding volume hierarchy traversal.
@@ -427,4 +432,22 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
         return false;
     }
+
+}
+
+void mipmap(Image& image, int level)
+{
+    float amount = image.width / std::pow(2, level);
+    if (amount < 1) {
+        return;
+    }
+    float offset = 0;
+    for (int i = 0; i < level; i++) {
+        offset += (image.width / std::pow(2, i)) * (image.height / std::pow(2, level));
+    }
+    for (int i = 0; i < amount; i++) {
+        glm::vec3 color = (image.pixels[i] + image.pixels[i + 1] + image.pixels[offset + amount * 2 + i] + image.pixels[offset + amount * 2 + i + 1]) / 4.0f;
+        image.pixels.push_back(color);
+    }
+    mipmap(image, level + 1);
 }
