@@ -8,6 +8,12 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 #include "common.h"
+#include <queue>
+
+bool overlap1D(float box1Min, float box1Max, float box2Min, float box2Max);
+bool overlap(AxisAlignedBox a1, AxisAlignedBox a2);
+void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes);
+bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2);
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
@@ -23,7 +29,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 
     m_nodes.push_back(root);
 
-    m_numLevels = recursiveSplit(0, 0, 5);
+    m_numLevels = recursiveSplit(0, 0, 10);
 
     m_numLeaves = 0;
 
@@ -342,7 +348,6 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
     }    
 }
 
-
 // Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
@@ -399,7 +404,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
             drawRay(ray1, glm::vec3(0.0f, 0.0f, 1.0f));
             drawRay(ray2, glm::vec3(0.0f, 0.0f, 1.0f));
         }
-
         // Intersect with spheres.
         for (const auto& sphere : m_pScene->spheres) {
             if (intersectRayWithShape(sphere, ray, hitInfo)) {
@@ -416,9 +420,9 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
         // Adding textureCoordinates
         if (hit) {
-             glm::vec3 p = ray.origin + ray.t * ray.direction;
-             glm::vec3 b_crods = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, p);
-             hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
+            glm::vec3 p = ray.origin + ray.t * ray.direction;
+            glm::vec3 b_crods = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, p);
+            hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
         }
 
         if (features.extra.enableMipmapTextureFiltering && hitInfo.material.kdTexture) {
@@ -454,7 +458,127 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
-        return false;
+        AxisAlignedBox aabb = { m_nodes[0].lowerBound, m_nodes[0].upperBound };
+        Ray rayCopy = ray;
+        if (!intersectRayWithShape(aabb, rayCopy)) {
+            return false;
+        }
+        Vertex ver0;
+        Vertex ver1;
+        Vertex ver2;
+        auto compare = [](glm::vec2 l, glm::vec2 r) {
+            return l.y > r.y;
+        };
+        std::priority_queue<glm::vec2, std::vector<glm::vec2>, decltype(compare)> q(compare);
+        q.push(glm::vec2(0, rayCopy.t));
+        getIntersections(q, ray, m_nodes[0], m_nodes);
+        bool ret = intersectNodes(q, ray, hitInfo, features, m_nodes, m_pScene, ver0, ver1, ver2);
+        drawTriangle(ver0, ver1, ver2, glm::vec3(1, 1, 1));
+        return ret;
     }
 
+}
+
+void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes)
+{
+    if (node.typeLeaf == 0) {
+        Node node1 = nodes[node.indices[0].first];
+        Node node2 = nodes[node.indices[0].second];
+        AxisAlignedBox aabb1 = { node1.lowerBound, node1.upperBound };
+        AxisAlignedBox aabb2 = { node2.lowerBound, node2.upperBound };
+        Ray rayCopy1 = ray;
+        Ray rayCopy2 = ray;
+        if (intersectRayWithShape(aabb1, rayCopy1)) {
+            // drawAABB(aabb1, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+            q.push(glm::vec2(node.indices[0].first, rayCopy1.t));
+            getIntersections(q, ray, node1, nodes);
+        }
+        if (intersectRayWithShape(aabb2, rayCopy2)) {
+            // drawAABB(aabb2, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+            q.push(glm::vec2(node.indices[0].second, rayCopy2.t));
+            getIntersections(q, ray, node2, nodes);
+        }
+    }
+}
+
+bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2)
+{
+    bool hit = false;
+    AxisAlignedBox aabb;
+    glm::vec3 drawColor = glm::vec3(1, 1, 1);
+    bool option = true;
+    while (!q.empty()) {
+        Node node = nodes[q.top().x];
+        q.pop();
+        if (node.typeLeaf == 1) {
+            if (!hit) {
+                for (const Tuple t : node.indices) {
+                    Mesh mesh = scene->meshes[t.first];
+                    const auto v0 = mesh.vertices[mesh.triangles[t.second][0]];
+                    const auto v1 = mesh.vertices[mesh.triangles[t.second][1]];
+                    const auto v2 = mesh.vertices[mesh.triangles[t.second][2]];
+                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                        hitInfo.material = mesh.material;
+                        glm::vec3 cross = glm::cross((v0.position - v2.position), (v1.position - v2.position));
+                        if (cross == glm::vec3(0, 0, 0)) {
+                            hitInfo.normal = glm::vec3(1, 0, 0);
+                        } else {
+                            hitInfo.normal = glm::normalize(cross);
+                        }
+
+                        ver0 = v0;
+                        ver1 = v1;
+                        ver2 = v2;
+                        aabb = { node.lowerBound, node.upperBound };
+                        drawAABB(aabb, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+                        hit = true;
+                    }
+                }
+            } else if (overlap(aabb, AxisAlignedBox { node.lowerBound, node.upperBound })) {
+                for (const Tuple t : node.indices) {
+                    Mesh mesh = scene->meshes[t.first];
+                    const auto v0 = mesh.vertices[mesh.triangles[t.second][0]];
+                    const auto v1 = mesh.vertices[mesh.triangles[t.second][1]];
+                    const auto v2 = mesh.vertices[mesh.triangles[t.second][2]];
+                    if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
+                        hitInfo.material = mesh.material;
+                        glm::vec3 cross = glm::cross((v0.position - v2.position), (v1.position - v2.position));
+                        if (cross == glm::vec3(0, 0, 0)) {
+                            hitInfo.normal = glm::vec3(1, 0, 0);
+                        } else {
+                            hitInfo.normal = glm::normalize(cross);
+                        }
+
+                        ver0 = v0;
+                        ver1 = v1;
+                        ver2 = v2;
+
+                    }
+                }
+                drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+            } else {
+                if (option) {
+                    drawColor = glm::vec3(1, 0, 0);
+                }
+                drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, drawColor);
+            }
+        } else {
+            if (hit && !overlap(aabb, AxisAlignedBox{ node.lowerBound, node.upperBound }) && option) {
+                drawColor = glm::vec3(1, 0, 0);
+                drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, drawColor);
+            } else {
+                drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, drawColor);
+            }
+        }
+    }
+    return hit;
+}
+
+bool overlap(AxisAlignedBox a1, AxisAlignedBox a2) {
+    return overlap1D(a1.lower.x, a1.upper.x, a2.lower.x, a2.upper.x) && overlap1D(a1.lower.y, a1.upper.y, a2.lower.y, a2.upper.y)
+        && overlap1D(a1.lower.z, a1.upper.z, a2.lower.z, a2.upper.z);
+}
+
+bool overlap1D(float box1Min, float box1Max, float box2Min, float box2Max) {
+    return (box1Max >= box2Min && box2Max >= box1Min);
 }
