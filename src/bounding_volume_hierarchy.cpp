@@ -417,10 +417,11 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         }
 
         // Adding textureCoordinates
-        if (hit) {
+        if (hit && features.enableTextureMapping && hitInfo.material.kdTexture) {
             glm::vec3 p = ray.origin + ray.t * ray.direction;
             glm::vec3 b_crods = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, p);
             hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
+            hitInfo.material.kd = acquireTexel(*hitInfo.material.kdTexture, hitInfo.texCoord, features);
         }
 
         return hit;
