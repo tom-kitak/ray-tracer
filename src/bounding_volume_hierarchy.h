@@ -6,6 +6,7 @@
 
 // Forward declaration.
 struct Scene;
+class Trackball;
 
 struct Node {
     bool typeLeaf; // 1 = leaf, 0 = interior
@@ -39,7 +40,7 @@ public:
     // Return true if something is hit, returns false otherwise.
     // Only find hits if they are closer than t stored in the ray and the intersection
     // is on the correct side of the origin (the new t >= 0).
-    bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const;
+    bool intersect(Ray& ray, HitInfo& hitInfo, const Features& features, const Trackball& camera) const;
 
     // Creates tuples with the mesh index and triangle index, for all the triangles
     std::vector<Tuple> createTuples();

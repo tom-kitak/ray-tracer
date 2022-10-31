@@ -23,6 +23,7 @@ enum SceneType {
     Dragon,
     Spheres,
     TextureVisualDebug,
+    MipmapVisualDebug,
     Custom,
     
 };

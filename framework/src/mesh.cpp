@@ -18,6 +18,8 @@ DISABLE_WARNINGS_POP()
 #include <tuple>
 #include <unordered_map>
 
+void mipmap(Image& image, int level);
+
 static void centerAndScaleToUnitMesh(std::span<Mesh> meshes);
 
 static glm::vec3 construct_vec3(const float* pFloats)
@@ -129,7 +131,10 @@ std::vector<Mesh> loadMesh(const std::filesystem::path& file, bool centerAndNorm
                 const auto& objMaterial = inMaterials[materialID];
                 mesh.material.kd = construct_vec3(objMaterial.diffuse);
                 if (!objMaterial.diffuse_texname.empty()) {
-                    mesh.material.kdTexture = std::make_shared<Image>(baseDir / objMaterial.diffuse_texname);
+                    Image image = Image(baseDir / objMaterial.diffuse_texname);
+                    // Create mipmaps
+                    mipmap(image, 1);
+                    mesh.material.kdTexture = std::make_shared<Image>(image);
                 }
                 mesh.material.ks = construct_vec3(objMaterial.specular);
                 mesh.material.shininess = objMaterial.shininess;
@@ -213,4 +218,26 @@ void meshFlipZ(Mesh& mesh)
         v.position.z = -v.position.z;
         v.normal.z = -v.normal.z;
     }
+}
+
+// Create the mipmaps by adding to the array of pixels
+void mipmap(Image& image, int level)
+{
+    float amount = image.width / std::pow(2, level);
+    if (amount < 1) {
+        return;
+    }
+    float offset = 0;
+    for (int i = 0; i < level - 1; i++) {
+        offset += (image.width / std::pow(2, i)) * (image.height / std::pow(2, i));
+    }
+    for (int y = 0; y < amount; y++) {
+        for (int x = 0; x < amount; x++) {
+            glm::vec3 color = (image.pixels[y * amount * 4 + offset + x * 2] + image.pixels[y * amount * 4 + offset + x * 2 + 1]
+                                  + image.pixels[y * amount * 4 + offset + amount * 2 + x * 2] + image.pixels[y * amount * 4 + offset + amount * 2 + x * 2 + 1])
+                / 4.0f;
+            image.pixels.push_back(color);
+        }
+    }
+    mipmap(image, level + 1);
 }

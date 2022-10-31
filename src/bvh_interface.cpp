@@ -45,7 +45,7 @@ void BvhInterface::debugDrawLeaf(int leafIdx)
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
-bool BvhInterface::intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const
+bool BvhInterface::intersect(Ray& ray, HitInfo& hitInfo, const Features& features, const Trackball& camera) const
 {
-    return m_impl->intersect(ray, hitInfo, features);
+    return m_impl->intersect(ray, hitInfo, features, camera);
 }

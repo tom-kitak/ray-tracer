@@ -32,6 +32,8 @@ public:
 	[[nodiscard]] glm::mat4 projectionMatrix() const;
         [[nodiscard]] glm::vec3 rotationEulerAngles() const;
         [[nodiscard]] float distanceFromLookAt() const;
+        [[nodiscard]] float halfScreenSpaceWidth() const;
+        [[nodiscard]] float halfScreenSpaceHeight() const;
 
 	void setCamera(const glm::vec3 lookAt, const glm::vec3 rotations, const float dist); // Set the position and orientation of the camera.
 

@@ -1,4 +1,6 @@
 #include "bounding_volume_hierarchy.h"
+#include "config.h"
+#include <framework/trackball.h>
 #include "draw.h"
 #include "intersect.h"
 #include "scene.h"
@@ -6,8 +8,6 @@
 #include "interpolate.h"
 #include <glm/glm.hpp>
 #include "common.h"
-
-void mipmap(Image& image, int level);
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
@@ -347,7 +347,7 @@ void BoundingVolumeHierarchy::debugDrawLeaf(int leafIdx)
 // in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
 // by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
 // file you like, including bounding_volume_hierarchy.h.
-bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Features& features) const
+bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Features& features, const Trackball& camera) const
 {
     // If BVH is not enabled, use the naive implementation.
     if (!features.enableAccelStructure) {
@@ -421,8 +421,32 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
              hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
         }
 
-        if (features.extra.enableMipmapTextureFiltering) {
-            mipmap(*hitInfo.material.kdTexture, 1);
+        if (features.extra.enableMipmapTextureFiltering && hitInfo.material.kdTexture) {
+            Config config = {};
+            // Calculate the footprint of the pixel by shooting rays from edges of the pixel and taking their texture coordinates.
+            Ray ray1 = { ray.origin, glm::normalize(glm::vec3(ray.direction.x + (1.0 / config.windowSize.x) * camera.halfScreenSpaceWidth(), ray.direction.y, ray.direction.z)),
+                std::numeric_limits<float>::max() };
+            Ray ray2 = { ray.origin, glm::normalize(glm::vec3(ray.direction.x, ray.direction.y + (1.0 / config.windowSize.y) * camera.halfScreenSpaceHeight(), ray.direction.z)),
+                std::numeric_limits<float>::max() };
+            Features temp = features;
+            HitInfo dummy;
+            temp.extra.enableMipmapTextureFiltering = false;
+            if (intersect(ray1, dummy, temp, camera) && intersect(ray2, dummy, temp, camera)) {
+                glm::vec3 barCoord1 = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, ray1.origin + ray1.direction * ray1.t);
+                glm::vec2 texCoord1 = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, barCoord1);
+                glm::vec3 barCoord2 = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, ray2.origin + ray2.direction * ray2.t);
+                glm::vec2 texCoord2 = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, barCoord2);
+                glm::vec2 vec1 = texCoord1 - hitInfo.texCoord;
+                glm::vec2 vec2 = texCoord2 - hitInfo.texCoord;
+                glm::vec2 point1 = hitInfo.texCoord + vec1 + vec2;
+                glm::vec2 point2 = hitInfo.texCoord + vec1 - vec2;
+                float x = std::max(std::abs(point1.x - hitInfo.texCoord.x), std::abs(point2.x - hitInfo.texCoord.x));
+                float y = std::max(std::abs(point1.y - hitInfo.texCoord.y), std::abs(point2.y - hitInfo.texCoord.y));
+                // Set m to the longest side of the aabb of the box formed by the texture coordinates.
+                hitInfo.m = std::max(x, y) * 2;
+                drawRay(ray1, glm::vec3(1, 0, 0));
+                drawRay(ray2, glm::vec3(1, 0, 0));
+            }
         }
 
         return hit;
@@ -433,21 +457,4 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         return false;
     }
 
-}
-
-void mipmap(Image& image, int level)
-{
-    float amount = image.width / std::pow(2, level);
-    if (amount < 1) {
-        return;
-    }
-    float offset = 0;
-    for (int i = 0; i < level; i++) {
-        offset += (image.width / std::pow(2, i)) * (image.height / std::pow(2, level));
-    }
-    for (int i = 0; i < amount; i++) {
-        glm::vec3 color = (image.pixels[i] + image.pixels[i + 1] + image.pixels[offset + amount * 2 + i] + image.pixels[offset + amount * 2 + i + 1]) / 4.0f;
-        image.pixels.push_back(color);
-    }
-    mipmap(image, level + 1);
 }

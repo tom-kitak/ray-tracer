@@ -113,6 +113,7 @@ int main(int argc, char** argv)
                     "Dragon",
                     /* "AABBs",*/ "Spheres", /*"Mixed",*/
                     "texture_visual_debug",
+                    "mipmap_debug",
                     "Custom",
                 };
                 if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
                     bvh = BvhInterface(&scene);
                     if (optDebugRay) {
                         HitInfo dummy {};
-                        bvh.intersect(*optDebugRay, dummy, config.features);
+                        bvh.intersect(*optDebugRay, dummy, config.features, camera);
                     }
                 }
             }
@@ -325,7 +326,7 @@ int main(int argc, char** argv)
                     enableDebugDraw = true;
                     glDisable(GL_LIGHTING);
                     glDepthFunc(GL_LEQUAL);
-                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features);
+                    (void)getFinalColor(scene, bvh, *optDebugRay, config.features, camera);
                     enableDebugDraw = false;
                 }
                 glPopAttrib();
