@@ -445,11 +445,40 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         getIntersections(q, ray, m_nodes[0], m_nodes);
         bool ret = intersectNodes(q, ray, hitInfo, features, m_nodes, m_pScene, ver0, ver1, ver2);
         drawTriangle(ver0, ver1, ver2, glm::vec3(1, 1, 1));
+
+        if (features.enableNormalInterp && ret) {
+            glm::vec3 intersection_point = ray.origin + ray.t * ray.direction;
+            glm::vec3 barycentricCoordinates = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, intersection_point);
+            glm::vec3 interpolatedNormal = glm::normalize(interpolateNormal(ver0.normal, ver1.normal, ver2.normal, barycentricCoordinates));
+            hitInfo.normal = interpolatedNormal;
+
+            // interpolated normal will be green
+            drawRay({ intersection_point, interpolatedNormal, 1.0f }, glm::vec3(0, 1, 0));
+
+            // draw normals of the intersected triangles
+            // normals will be drawn blue
+            Ray ray0 = { ver0.position, ver0.normal, 1.0f };
+            Ray ray1 = { ver1.position, ver1.normal, 1.0f };
+            Ray ray2 = { ver2.position, ver2.normal, 1.0f };
+
+            drawRay(ray0, glm::vec3(0.0f, 0.0f, 1.0f));
+            drawRay(ray1, glm::vec3(0.0f, 0.0f, 1.0f));
+            drawRay(ray2, glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        if (ret && features.enableTextureMapping && hitInfo.material.kdTexture) {
+            glm::vec3 p = ray.origin + ray.t * ray.direction;
+            glm::vec3 b_crods = computeBarycentricCoord(ver0.position, ver1.position, ver2.position, p);
+            hitInfo.texCoord = interpolateTexCoord(ver0.texCoord, ver1.texCoord, ver2.texCoord, b_crods);
+            hitInfo.material.kd = acquireTexel(*hitInfo.material.kdTexture, hitInfo.texCoord, features);
+        }
+
         return ret;
     }
 
 }
 
+// Add all the intersected nodes to a priority queue.
 void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes)
 {
     if (node.typeLeaf == 0) {
@@ -460,12 +489,12 @@ void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes)
         Ray rayCopy1 = ray;
         Ray rayCopy2 = ray;
         if (intersectRayWithShape(aabb1, rayCopy1)) {
-            // drawAABB(aabb1, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+            // Add a vec2 of the index and the ray.t to the priority queue.
             q.push(glm::vec2(node.indices[0].first, rayCopy1.t));
             getIntersections(q, ray, node1, nodes);
         }
         if (intersectRayWithShape(aabb2, rayCopy2)) {
-            // drawAABB(aabb2, DrawMode::Wireframe, glm::vec3(1, 1, 1));
+            // Add a vec2 of the index and the ray.t to the priority queue.
             q.push(glm::vec2(node.indices[0].second, rayCopy2.t));
             getIntersections(q, ray, node2, nodes);
         }
