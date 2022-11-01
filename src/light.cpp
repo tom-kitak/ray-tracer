@@ -110,8 +110,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
             if (features.enableShading) {
                 // If shading is enabled compute the phong shading for the light.
                 retColor = computeShading(pointLight.position, pointLight.color, features, ray, hitInfo);
-            } else if (features.enableTextureMapping) {
-                retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features, ray, hitInfo);
             } else {
                 // If shading is disabled use the albedo of the material.
                 retColor = hitInfo.material.kd;
@@ -135,8 +133,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableShading) {
                     // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
-                } else if (features.enableTextureMapping) {
-                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features, ray, hitInfo);
                 } else {
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
@@ -163,8 +159,6 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 if (features.enableShading) {
                     // If shading is enabled compute the phong shading for the light.
                     temp = computeShading(position, color, features, ray, hitInfo);
-                } else if (features.enableTextureMapping) {
-                    retColor = acquireTexel(*hitInfo.material.kdTexture.get(), hitInfo.texCoord, features, ray, hitInfo);
                 } else {
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
