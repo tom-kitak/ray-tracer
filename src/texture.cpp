@@ -17,7 +17,13 @@ glm::vec3 acquireTexel(Image& image, const glm::vec2& texCoord, const Features& 
     // Note, the center of the first pixel is at image coordinates (0.5, 0.5)
     if (features.extra.enableMipmapTextureFiltering && hitInfo.m) {
         float footPrint = std::clamp(hitInfo.m * image.width, 1.0f, image.width - 1.0f);
-        float level = std::log2(footPrint);
+        float maxLevel = 0;
+        float count = image.width;
+        while (count > 1) {
+            count /= 2;
+            maxLevel++;
+        }
+        float level = std::clamp(std::log2(footPrint), 0.0f, maxLevel);
         // Interpolate based on the level
         return (level - floor(level)) * getColor(image, texCoord, ceil(level)) + (1 - level + floor(level)) * getColor(image, texCoord, floor(level));
     }
