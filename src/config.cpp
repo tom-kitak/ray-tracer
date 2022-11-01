@@ -56,6 +56,10 @@ static std::ostream& operator<<(std::ostream& os, const SceneType& sceneType)
         os << "SceneType::TextureVisualDebug";
         break;
     }
+    case SceneType::MipmapVisualDebug: {
+        os << "SceneType::MipmapVisualDebug";
+        break;
+    }
     case SceneType::Custom: {
         os << "SceneType::Custom";
         break;
@@ -400,6 +404,8 @@ std::string serialize(const SceneType& sceneType)
         return "spheres";
     case SceneType::TextureVisualDebug:
         return "texture_visual_debug";
+    case SceneType::MipmapVisualDebug:
+        return "mipmap_debug";
     case SceneType::Custom:
         return "custom";
     default:
@@ -431,6 +437,8 @@ std::optional<SceneType> deserialize(const std::string& sceneTypeStr)
         return SceneType::Spheres;
     } else if (lowered == "texture_visual_debug") {
         return SceneType::TextureVisualDebug;
+    } else if (lowered == "mipmap_debug") {
+        return SceneType::MipmapVisualDebug;
     } else if (lowered == "custom") {
         return SceneType::Custom;
     } else {

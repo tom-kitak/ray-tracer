@@ -96,6 +96,15 @@ float Trackball::distanceFromLookAt() const {
     return m_distanceFromLookAt;
 }
 
+float Trackball::halfScreenSpaceWidth() const {
+    return m_halfScreenSpaceWidth;
+}
+
+float Trackball::halfScreenSpaceHeight() const
+{
+    return m_halfScreenSpaceHeight;
+}
+
 // Generate a ray with the origin at cameraPos, going through the given pixel (normalized coordinates between -1 and +1)
 // on the virtual image plane in front of the camera.
 Ray Trackball::generateRay(const glm::vec2& pixel) const

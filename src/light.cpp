@@ -1,5 +1,6 @@
 #include "light.h"
 #include "config.h"
+#include <framework/trackball.h>
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -8,8 +9,8 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <texture.h>
 
-void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo);
-void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo);
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo, Trackball camera);
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo, Trackball camera);
 
 // samples a segment light source
 // you should fill in the vectors position and color with the sampled position and color
@@ -41,7 +42,7 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 
 // test the visibility at a given light sample
 // returns 1.0 if sample is visible, 0.0 otherwise
-float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
+float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo, Trackball camera)
 {
     // TODO: implement this function.
     glm::vec3 offset(-0.00001f);
@@ -56,7 +57,7 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
     
     Ray shadow_ray { intersection_point, shadow_vec_dir, shadow_vec_t };
     
-    bool hit_before = bvh.intersect(shadow_ray, hitInfo, features);
+    bool hit_before = bvh.intersect(shadow_ray, hitInfo, features, camera);
 
     if (hit_before) {
         return 0.0;
@@ -98,7 +99,7 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
 //
 // You can add the light sources programmatically by creating a custom scene (modify the Custom case in the
 // loadScene function in scene.cpp). Custom lights will not be visible in rasterization view.
-glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo)
+glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo, Trackball camera)
 {
     Ray rayCopy = ray;
     glm::vec3 ret = glm::vec3(0, 0, 0);
@@ -113,11 +114,11 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                 // If shading is disabled use the albedo of the material.
                 retColor = hitInfo.material.kd;
             }
-            if (features.enableHardShadow && testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo) == 0.0f) {
+            if (features.enableHardShadow && testVisibilityLightSample(pointLight.position, pointLight.color, bvh, features, ray, hitInfo, camera) == 0.0f) {
                 retColor = glm::vec3(0, 0, 0);
             }
             if (features.enableHardShadow) {
-                hardShadowVisualDebug(pointLight, bvh, rayCopy, features, hitInfo);
+                hardShadowVisualDebug(pointLight, bvh, rayCopy, features, hitInfo, camera);
             }
             ret += retColor;
         } else if (std::holds_alternative<SegmentLight>(light)) {
@@ -136,12 +137,12 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
                 }
-                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
+                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo, camera) == 0.0f) {
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
                     HitInfo dummy;
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy, camera);
                 }
                 retColor += temp;
             }
@@ -162,12 +163,12 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
                     // If shading is disabled use the albedo of the material.
                     temp = hitInfo.material.kd;
                 }
-                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo) == 0.0f) {
+                if (features.enableSoftShadow && testVisibilityLightSample(position, color, bvh, features, ray, hitInfo, camera) == 0.0f) {
                     temp = glm::vec3(0, 0, 0);
                 }
                 if (features.enableSoftShadow) {
                     HitInfo dummy;
-                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy);
+                    softShadowsVisualDebug(rayCopy, color, position, features, bvh, dummy, camera);
                 }
                 retColor += temp;
             }
@@ -177,7 +178,7 @@ glm::vec3 computeLightContribution(const Scene& scene, const BvhInterface& bvh, 
     return ret;
 }
 
-void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo)
+void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray ray, const Features& features, HitInfo hitInfo, Trackball camera)
 {
     glm::vec3 offset(-0.00001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
@@ -193,7 +194,7 @@ void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray 
 
     Ray ray_towards_light { intersection_point, shadow_vec_dir, shadow_vec_t };
 
-    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features, camera);
 
     if (hit_before) {
         drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -202,7 +203,7 @@ void hardShadowVisualDebug(PointLight point_light, const BvhInterface& bvh, Ray 
     }
 }
 
-void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo)
+void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const Features& features, const BvhInterface& bvh, HitInfo hitInfo, Trackball camera)
 {
     glm::vec3 offset(-0.0001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
@@ -216,7 +217,7 @@ void softShadowsVisualDebug(Ray ray, glm::vec3 color, glm::vec3 samplePos, const
 
     Ray ray_towards_light { intersection_point, light_vec_dir, light_vec_t };
 
-    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features);
+    bool hit_before = bvh.intersect(ray_towards_light, hitInfo, features, camera);
 
     if (hit_before) {
         drawRay(ray_towards_light, glm::vec3(1.0f, 0.0f, 0.0f));

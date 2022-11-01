@@ -10,26 +10,26 @@
 
 #include <iostream>
 
-glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, int rayDepth);
+glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, const Trackball& camera, int rayDepth);
 
-glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, int rayDepth)
+glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, const Trackball& camera, int rayDepth)
 {
     HitInfo hitInfo;
-    if (bvh.intersect(ray, hitInfo, features)) {
+    if (bvh.intersect(ray, hitInfo, features, camera)) {
         int maxRayDepth = 2;
-        glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo);
+        glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo, camera);
 
         if (features.enableRecursive && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= maxRayDepth) {
            // Compute the reflection ray and contribute its light if the material is specular and the rayDepth is at most maxRayDepth.
            Ray reflection = computeReflectionRay(ray, hitInfo);
-           Lo += hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, rayDepth + 1);
+           Lo += hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, camera, rayDepth + 1);
         }
         
         // Clamp the rgb values between 0 and 1.
         Lo = glm::vec3(std::clamp(Lo.x, 0.0f, 1.0f), std::clamp(Lo.y, 0.0f, 1.0f), std::clamp(Lo.z, 0.0f, 1.0f));
 
         if (features.extra.enableTransparency) {
-            Lo = addTransparencyForPixel(Lo, ray, hitInfo, features, bvh, scene, rayDepth);
+            Lo = addTransparencyForPixel(Lo, ray, hitInfo, features, bvh, scene, camera, rayDepth);
         }
 
         // Draw a debug ray with the color of Lo if the ray hits.
@@ -60,12 +60,12 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features));
+            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features, camera));
         }
     }
 }
 
-glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, int rayDepth)
+glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, const Trackball& camera, int rayDepth)
 {
     if (hitInfo.material.transparency == 1.0f || ray.t == std::numeric_limits<float>::max()) {
         return color;
@@ -79,10 +79,10 @@ glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, con
     //background set to default black
     glm::vec3 backgroundAll(0.0f);
     
-    if (bvh.intersect(ray_from_point_on_surface, hi, features) && ray_from_point_on_surface.t != std::numeric_limits<float>::max()) {
+    if (bvh.intersect(ray_from_point_on_surface, hi, features, camera) && ray_from_point_on_surface.t != std::numeric_limits<float>::max()) {
         //glm::vec3 background_color = computeLightContribution(scene, bvh, features, ray_from_point_on_surface, hi); 
         //backgroundAll = addTransparencyForPixel(background_color, ray_from_point_on_surface, hi, features, bvh, scene);
-        backgroundAll = getFinalColor(scene, bvh, ray_from_point_on_surface, features, rayDepth);
+        backgroundAll = getFinalColor(scene, bvh, ray_from_point_on_surface, features, camera, rayDepth);
     }
 
     // Visual Debug for transparency:
