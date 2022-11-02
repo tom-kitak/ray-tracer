@@ -15,9 +15,11 @@ bool overlap(AxisAlignedBox a1, AxisAlignedBox a2);
 void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes);
 bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2);
 
+// Sources BVH creation: computer graphics L9 slides
+
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
     : m_pScene(pScene)
-{
+{    
     // make root node
     Node root;
     root.typeLeaf = 1;

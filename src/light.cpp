@@ -44,7 +44,6 @@ void sampleParallelogramLight(const ParallelogramLight& parallelogramLight, glm:
 // returns 1.0 if sample is visible, 0.0 otherwise
 float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& debugColor, const BvhInterface& bvh, const Features& features, Ray ray, HitInfo hitInfo, Trackball camera)
 {
-    // TODO: implement this function.
     glm::vec3 offset(-0.00001f);
     glm::vec3 intersection_point = ray.origin + ray.direction * ray.t + offset * ray.direction;
     
@@ -53,7 +52,6 @@ float testVisibilityLightSample(const glm::vec3& samplePos, const glm::vec3& deb
         return 1.0f;
     }
     glm::vec3 shadow_vec_dir = glm::normalize(samplePos - intersection_point);
-    
     
     Ray shadow_ray { intersection_point, shadow_vec_dir, shadow_vec_t };
     

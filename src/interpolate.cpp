@@ -4,7 +4,7 @@
 glm::vec3 computeBarycentricCoord (const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& p)
 {
     // Given the intersection point inside a triangle, compute its barycentric coordinates
-    // Sources: CG lecture slides
+    // Sources: computer graphics L5 slides
     float A = 0.5 * std::abs(glm::length(glm::cross((v2 - v0), (v1 - v0))));
 
     float alpha = (0.5 * std::abs(glm::length(glm::cross((v1 - p), (v2 - p))) / A));
@@ -23,6 +23,5 @@ glm::vec3 interpolateNormal (const glm::vec3& n0, const glm::vec3& n1, const glm
 
 glm::vec2 interpolateTexCoord (const glm::vec2& t0, const glm::vec2& t1, const glm::vec2& t2, const glm::vec3 barycentricCoord)
 {
-// TODO: implement this function.
     return t0 * barycentricCoord[0] + t1 * barycentricCoord[1] + t2 * barycentricCoord[2];
 }
