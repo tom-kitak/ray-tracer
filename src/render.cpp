@@ -11,7 +11,7 @@
 #include <iostream>
 
 glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, const Trackball& camera, int rayDepth);
-void samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& bvh);
+glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& bvh, const Features& features, const Trackball& camera);
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, const Trackball& camera, int rayDepth)
 {
@@ -26,11 +26,10 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
            Lo += hitInfo.material.ks * getFinalColor(scene, bvh, reflection, features, camera, rayDepth + 1);
         }
         
-        if (features.extra.enableGlossyReflection) {
-            drawRay(ray);
+        if (features.extra.enableGlossyReflection && hitInfo.material.ks != glm::vec3(0, 0, 0)) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            drawRay(reflection);
-            samplingRandomSquare(reflection, hitInfo, bvh);
+            drawRay(reflection, glm::vec3(1.0f, 0.0f, 0.0f));
+            Lo += hitInfo.material.ks * samplingRandomSquare(reflection, hitInfo, bvh, features, camera);
         }
 
         // Clamp the rgb values between 0 and 1.
@@ -100,10 +99,11 @@ glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, con
     return glm::vec3(hitInfo.material.transparency) * color + glm::vec3(1 - hitInfo.material.transparency) * backgroundAll;
 }
 
-void samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& bvh)
+glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& bvh, const Features& features, const Trackball& camera)
 {
+    // We return point color
     if (hitInfo.material.shininess == 0) {
-        return;
+        return hitInfo.material.kd;
     }
     float square_width = 1 / hitInfo.material.shininess;
     glm::vec3 r = reflection.origin + reflection.direction;
@@ -139,10 +139,17 @@ void samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& b
 
         glm::vec3 r_random_dir = glm::normalize(w + weight_u * basis_u + weight_v * basis_v);
         Ray shoot_ray { reflection.origin, r_random_dir };
-        drawRay(shoot_ray);
+        //drawRay(shoot_ray);
         //std::cout << shoot_ray.direction[0] << ", " << shoot_ray.direction[1] << ", " << shoot_ray.direction[2] << "|";
-        //HitInfo hi;
-        //bvh.intersect(shoot_ray, hi);
+        HitInfo hi;
+        bool hit = bvh.intersect(shoot_ray, hi, features, camera);
+        if (hit) {
+            return_color += hi.material.kd;
+        }
+        
+        // Visual Debug
+        drawRay(shoot_ray, hi.material.kd);
     }
-
+    return_color = return_color / glm::vec3(number_of_samples);
+    return return_color;
 }
