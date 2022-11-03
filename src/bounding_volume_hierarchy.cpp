@@ -17,9 +17,12 @@ bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std:
 float calculateSurface(Node node);
 
 Features currentFeatures; 
-bool showX = false;
+
+bool showX = true;
 bool showY = true;
 bool showZ = true;
+
+// Sources BVH creation + BVH traversal + SAH binning: computer graphics L9 slides
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
@@ -512,7 +515,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
                 hitInfo.normal = (ray.origin + ray.direction * ray.t) - sphere.center;
                 hit = true;
             } else {
-                // TODO: implement here the bounding volume hierarchy traversal.
                 // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
                 // to isolate the code that is only needed for the normal interpolation and texture mapping features.
                 return false;
@@ -558,7 +560,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
         return hit;
     } else {
-        // TODO: implement here the bounding volume hierarchy traversal.
         // Please note that you should use `features.enableNormalInterp` and `features.enableTextureMapping`
         // to isolate the code that is only needed for the normal interpolation and texture mapping features.
         AxisAlignedBox aabb = { m_nodes[0].lowerBound, m_nodes[0].upperBound };

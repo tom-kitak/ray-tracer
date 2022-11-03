@@ -10,7 +10,6 @@ glm::vec3 getColor(Image& image, const glm::vec2& texCoord, int level);
 
 glm::vec3 acquireTexel(Image& image, const glm::vec2& texCoord, const Features& features, Ray ray, HitInfo hitInfo)
 {
-    // TODO: implement this function.
     // Given texcoords, return the corresponding pixel of the image
     // The pixel are stored in a 1D array of row major order
     // you can convert from position (i,j) to an index using the method seen in the lecture
