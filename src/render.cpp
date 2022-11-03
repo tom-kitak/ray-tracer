@@ -3,6 +3,7 @@
 #include "light.h"
 #include "screen.h"
 #include "interpolate.h"
+#include "bloom.h"
 #include <framework/trackball.h>
 #ifdef NDEBUG
 #include <omp.h>
@@ -41,7 +42,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
         // Set the color of the pixel to black if the ray misses.
-        return glm::vec3(0.0f);
+       return glm::vec3(0.0f);
     }
 }
 
@@ -62,6 +63,10 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features, camera));
         }
+    }
+
+    if (features.extra.enableBloomEffect) {
+        bloom(screen, features, windowResolution, 0.9f, 10);  
     }
 }
 

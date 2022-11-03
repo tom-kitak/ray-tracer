@@ -58,12 +58,12 @@ void bloom(Screen& screen, const Features& features, glm::ivec2 windowRes, float
             // Visual debug
             
             // If enabled, show only the blurred image
-            if (features.extra.enableBloomEffect) {
+            if (features.extra.enableOnlyBloom) {
                 screen.setPixel(x, y, v);
             }
 
             // If not enabled, show the original image + the blurred image
-            if (!features.extra.enableBloomEffect) {
+            if (!features.extra.enableOnlyBloom) {
                 auto pixel = v + screen.getPixel(x, y);
                 screen.setPixel(x, y, pixel);
             }
