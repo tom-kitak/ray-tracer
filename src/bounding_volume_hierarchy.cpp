@@ -15,9 +15,13 @@ bool overlap(AxisAlignedBox a1, AxisAlignedBox a2);
 void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes);
 bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2);
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+Features currentFeatures; 
+
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
 {
+    currentFeatures = features;
+
     // make root node
     Node root;
     root.typeLeaf = 1;
@@ -108,7 +112,7 @@ float computeC(Vertex v1, Vertex v2, Vertex v3, char axis)
     return c;
 }
 
-std::tuple<Node, Node> BoundingVolumeHierarchy::split(Node node, char axis)
+std::tuple<Node, Node> BoundingVolumeHierarchy::split(Node node, char axis, float median)
 {
     // finds median, then splits one node into two new ones with that median    
 
@@ -138,12 +142,17 @@ std::tuple<Node, Node> BoundingVolumeHierarchy::split(Node node, char axis)
     // sort list of centroids
     sort(centroids.begin(), centroids.end());
 
-    // find median
-    float median;
-    if (centroids.size() % 2 == 0) { // even values
-        median = centroids[(centroids.size() / 2) - 1];
-    } else { // odd values
-        median = centroids[(centroids.size() - 1) / 2 ];
+    float m;
+    if (currentFeatures.extra.enableBvhSahBinning) {
+        // use median passed from findSAH
+        m = median;
+    } else {
+        // find median using centroids
+        if (centroids.size() % 2 == 0) { // even values
+            m = centroids[(centroids.size() / 2) - 1];
+        } else { // odd values
+            m = centroids[(centroids.size() - 1) / 2];
+        }
     }
 
     // create vector of triangles less than median, and more than median
@@ -151,7 +160,7 @@ std::tuple<Node, Node> BoundingVolumeHierarchy::split(Node node, char axis)
     std::vector<Tuple> moreThanMedian;
     for (std::tuple<Tuple, float> tuple : matchTriangleToC) {
         float triangleCentroid = std::get<1>(tuple);
-        if (triangleCentroid < median) {
+        if (triangleCentroid < m) {
             lessThanMedian.push_back(std::get<0>(tuple));
         } else {
             moreThanMedian.push_back(std::get<0>(tuple));
@@ -188,81 +197,128 @@ int BoundingVolumeHierarchy::recursiveSplit(int nodeIndex, int currentLevel, int
     } else {
         // did not reach stop condition -> split current node 
 
-        if (currentLevel % 3 == 0) {
-            // split on the x axis
-            std::tuple<Node, Node> children = split(parent, 'x');
-
-            // add children to nodes vector 
-            m_nodes.push_back(std::get<0>(children));
-            int childIndexLeft = m_nodes.size() - 1;
-            
-            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
-
-            m_nodes.push_back(std::get<1>(children));
-            int childIndexRight= m_nodes.size() - 1;
-
-            // update parent
-            parent.typeLeaf = 0;
-            Tuple indicesChildrenTuple = { childIndexLeft, childIndexRight };
-            std::vector<Tuple> indicesChildrenVector;
-            indicesChildrenVector.push_back(indicesChildrenTuple);
-            parent.indices = indicesChildrenVector;
-            m_nodes[nodeIndex] = parent;
-
-            // recurse on both children
-            int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
-            return std::max(x, y);
+        std::tuple<Node, Node> children;
+        std::vector<float> medians;
+        if (currentFeatures.extra.enableBvhSahBinning) {
+            children = findSAH(parent);
+        } else {
+            // we can just pass 0 as the median, because when we're not doing SAH, 
+            // we do not use that median, we calculate it
+            if (currentLevel % 3 == 0) {
+                // split on the x axis
+                children = split(parent, 'x', 0);
+            } else if (currentLevel % 3 == 1) {
+                // split on the y axis
+                children = split(parent, 'y', 0);
+            } else { // currentLevel % 3 == 2
+                // split on the z axis
+                children = split(parent, 'z', 0);
+            }
         }
-        else if (currentLevel % 3 == 1) {
+
+        // add children to nodes vector
+        m_nodes.push_back(std::get<0>(children));
+        int childIndexLeft = m_nodes.size() - 1;
+
+        int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
+
+        m_nodes.push_back(std::get<1>(children));
+        int childIndexRight = m_nodes.size() - 1;
+
+        // update parent
+        parent.typeLeaf = 0;
+        Tuple indicesChildrenTuple = { childIndexLeft, childIndexRight };
+        std::vector<Tuple> indicesChildrenVector;
+        indicesChildrenVector.push_back(indicesChildrenTuple);
+        parent.indices = indicesChildrenVector;
+        m_nodes[nodeIndex] = parent;
+
+        // recurse on both children
+        int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
+        return std::max(x, y);
+    }
+}
+
+std::tuple<Node, Node> BoundingVolumeHierarchy::findSAH(Node node) 
+{
+    // splits the node based on the surface area heuristic
+
+    std::tuple<Node, Node> result;
+
+    float startx = node.lowerBound.x;
+    float starty = node.lowerBound.y;
+    float startz = node.lowerBound.z;
+
+    float dx = node.upperBound.x - node.lowerBound.x;
+    float dy = node.upperBound.y - node.lowerBound.y;
+    float dz = node.upperBound.z - node.lowerBound.z;
+
+    // calculate medians
+    std::vector<float> medians;
+    for (int i = 1; i < 4; i++) {
+        medians.push_back((dx * i * (1 / 3.0f)) + startx);
+        medians.push_back((dy * i * (1 / 3.0f)) + starty);
+        medians.push_back((dz * i * (1 / 3.0f)) + startz);
+    }
+
+    // calculate options for splits
+    std::vector<std::tuple<Node, Node>> splitOptions;
+    for (int i = 0; i < medians.size(); i++) {
+        std::tuple<Node, Node> children;
+        if (i % 3 == 0) {
+            // split on the x axis
+            children = split(node, 'x', medians[i]);
+        } else if (i % 3 == 1) {
             // split on the y axis
-            std::tuple<Node, Node> children = split(m_nodes[nodeIndex], 'y');
-
-            // add children to nodes vector 
-            m_nodes.push_back(std::get<0>(children));
-            int childIndexLeft = m_nodes.size() - 1;
-
-            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
-
-            m_nodes.push_back(std::get<1>(children));
-            int childIndexRight = m_nodes.size() - 1;
-
-            // update parent
-            parent.typeLeaf = 0;
-            Tuple indicesChildrenTuple = { childIndexLeft, childIndexRight };
-            std::vector<Tuple> indicesChildrenVector;
-            indicesChildrenVector.push_back(indicesChildrenTuple);
-            parent.indices = indicesChildrenVector;
-            m_nodes[nodeIndex] = parent;
-
-            // recurse on both children
-            int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
-            return std::max(x, y);
-        } else { // currentLevel % 3 == 2
+            children = split(node, 'y', medians[i]);
+        } else { // i % 3 == 2
             // split on the z axis
-            std::tuple<Node, Node> children = split(m_nodes[nodeIndex], 'z');
+            children = split(node, 'z', medians[i]);
+        }
+        splitOptions.push_back(children);
+    }
 
-            // add children to nodes vector 
-            m_nodes.push_back(std::get<0>(children));
-            int childIndexLeft = m_nodes.size() - 1;
+    // calculate surface of the current node
+    float s = calculateSurface(node);
 
-            int x = recursiveSplit(childIndexLeft, currentLevel + 1, maxLevel);
+    // calculate all the costs
+    std::vector<float> costs;
+    for (int i = 0; i < splitOptions.size(); i++) {
+        float s1 = calculateSurface(std::get<0>(splitOptions[i]));
+        float s2 = calculateSurface(std::get<1>(splitOptions[i]));
+        float cost = ((s1 / s) * std::get<0>(splitOptions[i]).indices.size()) + ((s2 / s) * std::get<1>(splitOptions[i]).indices.size());
+        costs.push_back(cost);
+    }
 
-            m_nodes.push_back(std::get<1>(children));
-            int childIndexRight = m_nodes.size() - 1;
-
-            // update parent
-            parent.typeLeaf = 0;
-            Tuple indicesChildrenTuple = { childIndexLeft, childIndexRight };
-            std::vector<Tuple> indicesChildrenVector;
-            indicesChildrenVector.push_back(indicesChildrenTuple);
-            parent.indices = indicesChildrenVector;
-            m_nodes[nodeIndex] = parent;
-
-            // recurse on both children
-            int y = recursiveSplit(childIndexRight, currentLevel + 1, maxLevel);
-            return std::max(x, y);
+    // find the minimum cost
+    float min = std::numeric_limits<float>::max();
+    int index = -1;
+    for (int i = 0; i < costs.size(); i++) {
+        if (costs[i] < min) {
+            min = costs[i];
+            index = i;
         }
     }
+
+    // if the index is still -1, 
+    // it means the current node could either not be split or the best decision is to not split the current node
+    // so we return an empty result
+    if (index == -1) {
+        return result;
+    }
+
+    // if the current node should be split, we return the best split we found with SAH
+    result = splitOptions[index];
+    return result;
+}
+
+float calculateSurface(Node node) {
+    // Source: https://math.stackexchange.com/questions/2541655/calculation-of-the-volume-and-surface-of-a-cubo%C3%AFd-knowing-the-coordinates-of-two
+    float L = node.upperBound.x - node.lowerBound.x;
+    float B = node.upperBound.y - node.lowerBound.y;
+    float H = node.upperBound.z - node.lowerBound.z;
+    float surfaceArea = 2 * (L * B + B * H + H * L);
+    return surfaceArea;
 }
 
 // Return the depth of the tree that you constructed. This is used to tell the
