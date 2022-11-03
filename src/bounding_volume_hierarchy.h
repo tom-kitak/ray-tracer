@@ -23,7 +23,7 @@ struct Node {
 class BoundingVolumeHierarchy {
 public:
     // Constructor. Receives the scene and builds the bounding volume hierarchy.
-    BoundingVolumeHierarchy(Scene* pScene);
+    BoundingVolumeHierarchy(Scene* pScene, const Features& features);
 
     // Return how many levels there are in the tree that you have constructed.
     [[nodiscard]] int numLevels() const;
@@ -49,13 +49,16 @@ public:
     std::tuple<glm::vec3, glm::vec3> findBounds(std::vector<Tuple> tuples);
 
     // Splits one node into two new nodes, using the median that alters between x-y-z
-    std::tuple<Node, Node> split(Node node, char axis);
+    std::tuple<Node, Node> split(Node node, char axis, float median);
 
     // Recursively splits the nodes until the stop condition
     int recursiveSplit(int nodeIndex, int currentLevel, int maxLevel);
 
     // Recursive function for visual debug 1, checks for what level to draw
     void recursionDrawLevel(int currentLevel, int level, int nodeIndex); 
+
+    // Splits the node based on the surface area heuristic
+    std::tuple<Node, Node> findSAH(Node node);
 
 private:
     int m_numLevels;
