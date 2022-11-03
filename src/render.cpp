@@ -11,6 +11,9 @@
 
 #include <iostream>
 
+extern float thresBloom;
+extern int distBloom;
+
 glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, const Trackball& camera, int rayDepth);
 
 glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, const Features& features, const Trackball& camera, int rayDepth)
@@ -66,7 +69,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
     }
 
     if (features.extra.enableBloomEffect) {
-        bloom(screen, features, windowResolution, 0.9f, 10);  
+        bloom(screen, features, windowResolution, thresBloom, distBloom);  
     }
 }
 

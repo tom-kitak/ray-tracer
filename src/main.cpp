@@ -3,6 +3,7 @@
 #include "light.h"
 #include "render.h"
 #include "screen.h"
+#include "render.cpp"
 // Suppress warnings in third-party code.
 #include <framework/disable_all_warnings.h>
 DISABLE_WARNINGS_PUSH()
@@ -147,8 +148,14 @@ int main(int argc, char** argv)
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
-                ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
-                ImGui::Checkbox("Bloom effect only", &config.features.extra.enableOnlyBloom);
+                if (ImGui::CollapsingHeader("Bloom effect")) {
+                    ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                    if (config.features.extra.enableBloomEffect) {
+                        ImGui::Checkbox("Bloom layer only", &config.features.extra.enableOnlyBloom);
+                        ImGui::SliderInt("Distance", &distBloom, 0, 100);
+                        ImGui::SliderFloat("BVH Level", &thresBloom, 0.0f, 1.0f);
+                    }
+                }
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);
