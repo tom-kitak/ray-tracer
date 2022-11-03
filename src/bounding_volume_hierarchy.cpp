@@ -473,7 +473,6 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
         };
         std::priority_queue<glm::vec2, std::vector<glm::vec2>, decltype(compare)> q(compare);
         q.push(glm::vec2(0, rayCopy.t));
-        getIntersections(q, ray, m_nodes[0], m_nodes);
         bool ret = intersectNodes(q, ray, hitInfo, features, m_nodes, m_pScene, ver0, ver1, ver2);
         drawTriangle(ver0, ver1, ver2, glm::vec3(1, 1, 1));
 
@@ -538,47 +537,23 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo, const Featur
 
 }
 
-// Add all the intersected nodes to a priority queue.
-void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes)
-{
-    if (node.typeLeaf == 0) {
-        Node node1 = nodes[node.indices[0].first];
-        Node node2 = nodes[node.indices[0].second];
-        AxisAlignedBox aabb1 = { node1.lowerBound, node1.upperBound };
-        AxisAlignedBox aabb2 = { node2.lowerBound, node2.upperBound };
-        Ray rayCopy1 = ray;
-        Ray rayCopy2 = ray;
-        if (intersectRayWithShape(aabb1, rayCopy1)) {
-            // Add a vec2 of the index and the ray.t to the priority queue.
-            q.push(glm::vec2(node.indices[0].first, rayCopy1.t));
-            getIntersections(q, ray, node1, nodes);
-        }
-        if (intersectRayWithShape(aabb2, rayCopy2)) {
-            // Add a vec2 of the index and the ray.t to the priority queue.
-            q.push(glm::vec2(node.indices[0].second, rayCopy2.t));
-            getIntersections(q, ray, node2, nodes);
-        }
-    }
-}
-
 bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2)
 {
     bool hit = false;
     AxisAlignedBox aabb;
     glm::vec3 drawColor = glm::vec3(1, 1, 1);
-    bool option = true;
+    bool option = false;
     while (!q.empty()) {
         Node node = nodes[q.top().x];
         q.pop();
         if (node.typeLeaf == 1) {
             if (!hit) {
                 for (const Tuple t : node.indices) {
-                    Mesh mesh = scene->meshes[t.first];
-                    const auto v0 = mesh.vertices[mesh.triangles[t.second][0]];
-                    const auto v1 = mesh.vertices[mesh.triangles[t.second][1]];
-                    const auto v2 = mesh.vertices[mesh.triangles[t.second][2]];
+                    const auto v0 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][0]];
+                    const auto v1 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][1]];
+                    const auto v2 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][2]];
                     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                        hitInfo.material = mesh.material;
+                        hitInfo.material = scene->meshes[t.first].material;
                         glm::vec3 cross = glm::cross((v0.position - v2.position), (v1.position - v2.position));
                         if (cross == glm::vec3(0, 0, 0)) {
                             hitInfo.normal = glm::vec3(1, 0, 0);
@@ -596,12 +571,11 @@ bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std:
                 }
             } else if (overlap(aabb, AxisAlignedBox { node.lowerBound, node.upperBound })) {
                 for (const Tuple t : node.indices) {
-                    Mesh mesh = scene->meshes[t.first];
-                    const auto v0 = mesh.vertices[mesh.triangles[t.second][0]];
-                    const auto v1 = mesh.vertices[mesh.triangles[t.second][1]];
-                    const auto v2 = mesh.vertices[mesh.triangles[t.second][2]];
+                    const auto v0 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][0]];
+                    const auto v1 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][1]];
+                    const auto v2 = scene->meshes[t.first].vertices[scene->meshes[t.first].triangles[t.second][2]];
                     if (intersectRayWithTriangle(v0.position, v1.position, v2.position, ray, hitInfo)) {
-                        hitInfo.material = mesh.material;
+                        hitInfo.material = scene->meshes[t.first].material;
                         glm::vec3 cross = glm::cross((v0.position - v2.position), (v1.position - v2.position));
                         if (cross == glm::vec3(0, 0, 0)) {
                             hitInfo.normal = glm::vec3(1, 0, 0);
@@ -624,7 +598,22 @@ bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std:
                 drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, drawColor);
             }
         } else {
+            Node node1 = nodes[node.indices[0].first];
+            Node node2 = nodes[node.indices[0].second];
+            AxisAlignedBox aabb1 = { node1.lowerBound, node1.upperBound };
+            AxisAlignedBox aabb2 = { node2.lowerBound, node2.upperBound };
+            Ray rayCopy1 = ray;
+            Ray rayCopy2 = ray;
+            if (intersectRayWithShape(aabb1, rayCopy1)) {
+                // Add a vec2 of the index and the ray.t to the priority queue.
+                q.push(glm::vec2(node.indices[0].first, rayCopy1.t));
+            }
+            if (intersectRayWithShape(aabb2, rayCopy2)) {
+                // Add a vec2 of the index and the ray.t to the priority queue.
+                q.push(glm::vec2(node.indices[0].second, rayCopy2.t));
+            }
             if (hit && !overlap(aabb, AxisAlignedBox{ node.lowerBound, node.upperBound }) && option) {
+                // If there is already a hit and this node doesn't overlap with the aabb of the first hit stop the traversal.
                 drawColor = glm::vec3(1, 0, 0);
                 drawAABB({ node.lowerBound, node.upperBound }, DrawMode::Wireframe, drawColor);
             } else {
