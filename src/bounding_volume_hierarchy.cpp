@@ -17,7 +17,7 @@ bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std:
 float calculateSurface(Node node);
 
 Features currentFeatures; 
-bool showX = true;
+bool showX = false;
 bool showY = true;
 bool showZ = true;
 
@@ -383,7 +383,6 @@ void BoundingVolumeHierarchy::recursionDrawLevel(int currentLevel, int level, in
                 if (showY) {
                     float upperY = (dy * i * (1 / 3.0f)) + starty;
                     aabb.upper.y = upperY;
-                    AxisAlignedBox aabb { curr.lowerBound, curr.upperBound };
                     drawAABB(aabb, DrawMode::Wireframe, { 0.0f, 1.0f, 0.0f }, 1.0f);
                 }
 
@@ -393,7 +392,6 @@ void BoundingVolumeHierarchy::recursionDrawLevel(int currentLevel, int level, in
                 if (showZ) {
                     float upperZ = (dz * i * (1 / 3.0f)) + startz;
                     aabb.upper.z = upperZ;
-                    AxisAlignedBox aabb { curr.lowerBound, curr.upperBound };
                     drawAABB(aabb, DrawMode::Wireframe, { 0.0f, 0.0f, 1.0f }, 1.0f);
                 }
             }
