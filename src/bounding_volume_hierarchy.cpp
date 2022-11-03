@@ -14,8 +14,12 @@ bool overlap1D(float box1Min, float box1Max, float box2Min, float box2Max);
 bool overlap(AxisAlignedBox a1, AxisAlignedBox a2);
 void getIntersections(auto& q, Ray ray, Node node, std::vector<Node> nodes);
 bool intersectNodes(auto& q, Ray& ray, HitInfo& hitInfo, Features features, std::vector<Node> nodes, Scene* scene, Vertex& ver0, Vertex& ver1, Vertex& ver2);
+float calculateSurface(Node node);
 
 Features currentFeatures; 
+bool showX = true;
+bool showY = true;
+bool showZ = true;
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, const Features& features)
     : m_pScene(pScene)
@@ -351,6 +355,49 @@ void BoundingVolumeHierarchy::recursionDrawLevel(int currentLevel, int level, in
         // draw current node   
         AxisAlignedBox aabb { m_nodes[nodeIndex].lowerBound, m_nodes[nodeIndex].upperBound };
         drawAABB(aabb, DrawMode::Wireframe);
+
+        // visual debug for SAH, showing the next possible bins on the specified axis
+        if (currentFeatures.extra.enableBvhSahBinning && (showX || showY || showZ)) {
+            Node curr = m_nodes[nodeIndex];
+            float startx = curr.lowerBound.x;
+            float starty = curr.lowerBound.y;
+            float startz = curr.lowerBound.z;
+
+            float dx = curr.upperBound.x - curr.lowerBound.x;
+            float dy = curr.upperBound.y - curr.lowerBound.y;
+            float dz = curr.upperBound.z - curr.lowerBound.z;
+
+            for (int i = 1; i < 4; i++) {
+                AxisAlignedBox aabb = { curr.lowerBound, curr.upperBound };
+
+                // Show options for the split on the x axis
+                if (showX) {
+                    float upperX = (dx * i * (1 / 3.0f)) + startx;
+                    aabb.upper.x = upperX;
+                    drawAABB(aabb, DrawMode::Wireframe, { 1.0f, 0.0f, 0.0f }, 1.0f);
+                }
+
+                aabb = { curr.lowerBound, curr.upperBound };
+
+                // Show options for the split on the y axis
+                if (showY) {
+                    float upperY = (dy * i * (1 / 3.0f)) + starty;
+                    aabb.upper.y = upperY;
+                    AxisAlignedBox aabb { curr.lowerBound, curr.upperBound };
+                    drawAABB(aabb, DrawMode::Wireframe, { 0.0f, 1.0f, 0.0f }, 1.0f);
+                }
+
+                aabb = { curr.lowerBound, curr.upperBound };
+
+                // Show options for the split on the z axis
+                if (showZ) {
+                    float upperZ = (dz * i * (1 / 3.0f)) + startz;
+                    aabb.upper.z = upperZ;
+                    AxisAlignedBox aabb { curr.lowerBound, curr.upperBound };
+                    drawAABB(aabb, DrawMode::Wireframe, { 0.0f, 0.0f, 1.0f }, 1.0f);
+                }
+            }
+        }
     } else {
         if (m_nodes[nodeIndex].typeLeaf == 0) {
             // does the current node have children? recurse on the children
