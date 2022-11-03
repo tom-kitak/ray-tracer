@@ -20,7 +20,7 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
         int maxRayDepth = 2;
         glm::vec3 Lo = computeLightContribution(scene, bvh, features, ray, hitInfo, camera);
 
-        if (features.enableRecursive && features.extra.enableGlossyReflection && hitInfo.material.ks != glm::vec3(0, 0, 0)) {
+        if (features.enableRecursive && features.extra.enableGlossyReflection && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= maxRayDepth) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
             drawRay(reflection, glm::vec3(1.0f, 0.0f, 0.0f));
             Lo += hitInfo.material.ks * samplingRandomSquare(reflection, hitInfo, bvh, features, camera, scene, rayDepth);
@@ -103,10 +103,11 @@ glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterfa
     if (hitInfo.material.shininess == 0) {
         return hitInfo.material.kd;
     }
+
     float square_width = 1 / hitInfo.material.shininess;
     glm::vec3 r = reflection.direction;
     glm::vec3 return_color(0.0f);
-    int number_of_samples = 500;
+    int number_of_samples = 30;
 
     // Making a square: w is unit vector in direction of r, while u and v are perpendicular to w
     glm::vec3 w = glm::normalize(r);
@@ -141,7 +142,7 @@ glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterfa
         bool hit = bvh.intersect(shoot_ray, hi, features, camera);
         glm::vec3 color(0.0f);
         if (hit) {
-            color = getFinalColor(scene, bvh, reflection, features, camera, rayDepth);
+            color = getFinalColor(scene, bvh, shoot_ray, features, camera, rayDepth + 1);
             return_color += color;
         }
         
