@@ -99,11 +99,6 @@ glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, con
 
 glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterface& bvh, const Features& features, const Trackball& camera, const Scene& scene, int rayDepth)
 {
-    // We return point color
-    if (hitInfo.material.shininess == 0) {
-        return getFinalColor(scene, bvh, reflection, features, camera, rayDepth + 1);
-    }
-
     float square_width = 1 / hitInfo.material.shininess;
     glm::vec3 r = reflection.direction;
     glm::vec3 return_color(0.0f);
