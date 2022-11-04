@@ -22,7 +22,6 @@ glm::vec3 getFinalColor(const Scene& scene, const BvhInterface& bvh, Ray ray, co
 
         if (features.enableRecursive && features.extra.enableGlossyReflection && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= maxRayDepth) {
             Ray reflection = computeReflectionRay(ray, hitInfo);
-            drawRay(reflection, glm::vec3(1.0f, 0.0f, 0.0f));
             Lo += hitInfo.material.ks * samplingRandomSquare(reflection, hitInfo, bvh, features, camera, scene, rayDepth);
         } else if (features.enableRecursive && hitInfo.material.ks != glm::vec3(0, 0, 0) && rayDepth <= maxRayDepth) {
             // Compute the reflection ray and contribute its light if the material is specular and the rayDepth is at most maxRayDepth.
