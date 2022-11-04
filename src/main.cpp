@@ -38,6 +38,9 @@ enum class ViewMode {
 
 int debugBVHLeafId = 0;
 
+//float thresBloom = 0.0f;
+//int distBloom = 0;
+
 static void setOpenGLMatrices(const Trackball& camera);
 static void drawLightsOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 static void drawSceneOpenGL(const Scene& scene);
@@ -148,14 +151,15 @@ int main(int argc, char** argv)
             if (ImGui::CollapsingHeader("Extra Features")) {
                 ImGui::Checkbox("Environment mapping", &config.features.extra.enableEnvironmentMapping);
                 ImGui::Checkbox("BVH SAH binning", &config.features.extra.enableBvhSahBinning);
-                if (ImGui::CollapsingHeader("Bloom effect")) {
-                    ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                ImGui::Checkbox("Bloom effect", &config.features.extra.enableBloomEffect);
+                ImGui::Checkbox("Bloom layer only", &config.features.extra.enableOnlyBloom);
+                /*if (ImGui::CollapsingHeader("Bloom effect")) {
                     if (config.features.extra.enableBloomEffect) {
                         ImGui::Checkbox("Bloom layer only", &config.features.extra.enableOnlyBloom);
                         ImGui::SliderInt("Distance", &distBloom, 0, 100);
                         ImGui::SliderFloat("BVH Level", &thresBloom, 0.0f, 1.0f);
                     }
-                }
+                }*/
                 ImGui::Checkbox("Texture filtering(bilinear interpolation)", &config.features.extra.enableBilinearTextureFiltering);
                 ImGui::Checkbox("Texture filtering(mipmapping)", &config.features.extra.enableMipmapTextureFiltering);
                 ImGui::Checkbox("Glossy reflections", &config.features.extra.enableGlossyReflection);

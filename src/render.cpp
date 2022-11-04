@@ -11,8 +11,8 @@
 
 #include <iostream>
 
-extern float thresBloom;
-extern int distBloom;
+float thresBloom = 0.5f; // between 0.0f and 1.0f
+int distBloom = 6; // between 0 and 100
 
 glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, const Features& features, const BvhInterface& bvh, const Scene& scene, const Trackball& camera, int rayDepth);
 
@@ -64,6 +64,7 @@ void renderRayTracing(const Scene& scene, const Trackball& camera, const BvhInte
                 float(y) / float(windowResolution.y) * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
+
             screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay, features, camera));
         }
     }

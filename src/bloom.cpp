@@ -33,22 +33,24 @@ void bloom(Screen& screen, const Features& features, glm::ivec2 windowRes, float
 		}
 	}
 	
-    for (int x = 0; x < wx; x++) {
-        for (int y = 0; y < wy; y++) {
+    for (int y = 0; y < wy; y++) {
+        for (int x = 0; x < wx; x++) {
             // Define filter size
             int y0 = glm::min(distance, y);
             int y1 = glm::min(distance, wy - 1 - y);
-            int x0 = glm::min(distance, y);
+            int x0 = glm::min(distance, x);
             int x1 = glm::min(distance, wx - 1 - x);
 
             // Calculate average
             glm::vec3 v;
             int n = 0;
-            for (int i = -x0; i < x1; i++) {
+            //for (int i = -x0; i <= x1; i++) {
+            for (int i = -y0; i <= y1; i++) {
                 int abs = std::abs(i);
-                for (int j = -y0; j < y1; j++) {
+                //for (int j = -y0 + abs; j <= y1 - abs; j++) {
+                for (int j = -x0 + abs; j <= x1 - abs; j++) {
                     n++;
-                    int index = (x + i) * wx + y + j;
+                    int index = (y + i) * wx + x + j;
                     v = v + filteredPixels[index];
                 }
             }
@@ -57,15 +59,15 @@ void bloom(Screen& screen, const Features& features, glm::ivec2 windowRes, float
 
             // Visual debug
             
-            // If enabled, show only the blurred image
+            // If enabled, show the original image + the blurred image
             if (features.extra.enableOnlyBloom) {
-                screen.setPixel(x, y, v);
+                auto pixel = screen.getPixel(x, y) + v;
+                screen.setPixel(x, y, pixel);
             }
 
-            // If not enabled, show the original image + the blurred image
+            // If not enabled, show only the blurred image 
             if (!features.extra.enableOnlyBloom) {
-                auto pixel = v + screen.getPixel(x, y);
-                screen.setPixel(x, y, pixel);
+                screen.setPixel(x, y, v);
             }
         }
     }
