@@ -84,8 +84,6 @@ glm::vec3 addTransparencyForPixel(glm::vec3 color, Ray ray, HitInfo hitInfo, con
     glm::vec3 backgroundAll(0.0f);
     
     if (bvh.intersect(ray_from_point_on_surface, hi, features, camera) && ray_from_point_on_surface.t != std::numeric_limits<float>::max()) {
-        //glm::vec3 background_color = computeLightContribution(scene, bvh, features, ray_from_point_on_surface, hi); 
-        //backgroundAll = addTransparencyForPixel(background_color, ray_from_point_on_surface, hi, features, bvh, scene);
         backgroundAll = getFinalColor(scene, bvh, ray_from_point_on_surface, features, camera, rayDepth);
     }
 
