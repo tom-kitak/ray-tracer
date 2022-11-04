@@ -101,7 +101,7 @@ glm::vec3 samplingRandomSquare(Ray reflection, HitInfo hitInfo, const BvhInterfa
 {
     // We return point color
     if (hitInfo.material.shininess == 0) {
-        return hitInfo.material.kd;
+        return getFinalColor(scene, bvh, reflection, features, camera, rayDepth + 1);
     }
 
     float square_width = 1 / hitInfo.material.shininess;
